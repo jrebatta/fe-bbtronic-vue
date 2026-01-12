@@ -1,0 +1,152 @@
+/* Estilo General */
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #FFFFFF;
+    overflow: auto;
+    background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #2d0052 100%);
+}
+
+/* Video de fondo */
+#backgroundVideo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    opacity: 0.7;
+}
+
+/* Card de preguntas */
+#preguntas {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    color: #FFFFFF;
+    border-radius: 25px;
+    padding: 40px;
+    box-shadow: 0 10px 40px rgba(187, 0, 255, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 3px solid #bb00ff;
+    max-width: 55vw;
+    margin: 20px auto;
+    text-align: center;
+    word-wrap: break-word;
+    box-sizing: border-box;
+    animation: cardPulse 3s ease-in-out infinite;
+}
+
+@keyframes cardPulse {
+    0%, 100% { box-shadow: 0 10px 40px rgba(187, 0, 255, 0.4); }
+    50% { box-shadow: 0 10px 50px rgba(187, 0, 255, 0.6), 0 0 60px rgba(187, 0, 255, 0.3); }
+}
+
+/* Títulos y textos */
+.card-title,
+.card-subtitle,
+.card-text,
+#questionNumber1,
+#toUser {
+    color: #FFFFFF !important;
+    font-weight: 700;
+    text-align: center;
+}
+
+.card-text {
+    font-size: 2.2rem;
+    line-height: 1.4;
+    text-shadow: 0 0 15px rgba(187, 0, 255, 0.9),
+                 0 0 30px rgba(187, 0, 255, 0.6),
+                 0 0 45px rgba(187, 0, 255, 0.3);
+}
+
+/* Número de pregunta */
+#questionNumber {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #FFFFFF !important;
+    text-shadow: 0 0 20px rgba(187, 0, 255, 0.8);
+}
+
+/* Botones */
+#nextQuestionButton,
+#logoutButton, #lobbyButton {
+    font-size: 1.05rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(187, 0, 255, 0.3) 0%, rgba(80, 0, 180, 0.3) 100%);
+    color: #FFFFFF;
+    border: 2px solid #bb00ff;
+    border-radius: 12px;
+    padding: 14px 30px;
+    letter-spacing: 0.5px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    max-width: 200px;
+    margin-top: 25px;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 4px 15px rgba(187, 0, 255, 0.3);
+    text-shadow: 0 0 10px rgba(187, 0, 255, 0.6);
+}
+
+#nextQuestionButton:hover,
+#logoutButton:hover, #lobbyButton:hover {
+    background: linear-gradient(135deg, rgba(187, 0, 255, 0.5) 0%, rgba(80, 0, 180, 0.5) 100%);
+    border-color: #ff00ff;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(187, 0, 255, 0.6),
+                0 0 40px rgba(187, 0, 255, 0.4);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 1),
+                 0 0 30px rgba(187, 0, 255, 1);
+}
+
+#nextQuestionButton:active,
+#logoutButton:active, #lobbyButton:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Media Query para pantallas menores de 768px */
+@media (max-width: 768px) {
+    #preguntas {
+        max-width: 90%; /* Ocupa más espacio horizontal */
+        font-size: 1.8rem; /* Reducir tamaño del texto */
+        padding: 20px; /* Reducir padding */
+        border: 4px solid #bb00ff;
+    }
+
+    .card-text {
+        font-size: 1.5rem; /* Tamaño del texto ajustado */
+    }
+
+    #nextQuestionButton,
+    #logoutButton, #lobbyButton {
+        font-size: 14px; /* Texto más pequeño */
+        padding: 8px 15px; /* Ajuste del padding */
+        max-width: 140px;
+    }
+}
+
+/* Media Query para pantallas menores de 480px */
+@media (max-width: 480px) {
+    #preguntas {
+        font-size: 1.5rem; /* Texto más pequeño */
+        padding: 15px;
+        border: 3px solid #bb00ff;
+    }
+
+    .card-text {
+        font-size: 1.2rem; /* Ajuste adicional del tamaño del texto */
+    }
+
+    #nextQuestionButton,
+    #logoutButton, #lobbyButton {
+        font-size: 12px;
+        padding: 6px 12px;
+        max-width: 120px;
+    }
+}
