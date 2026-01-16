@@ -24,19 +24,35 @@ export function useSession() {
    * Cerrar sesión del usuario
    * - Llama al endpoint de logout
    * - Notifica por WebSocket que el usuario salió
+   * - Si es el creador, expulsa a todos los usuarios
    * - Limpia el store
    * - Redirige al home
    */
   async function logout() {
     try {
+      // Verificar si el usuario es el creador ANTES de limpiar el store
+      const isCreator = sessionStore.isCreator
+      const sessionCode = sessionStore.sessionCode
+      const username = sessionStore.username
+
       // Llamar al endpoint de logout
       const response = await apiService.logout(sessionStore.sessionToken)
 
       // Notificar por WebSocket que el usuario salió
-      if (sessionStore.sessionCode && websocketService.isWebSocketConnected()) {
-        websocketService.send(sessionStore.sessionCode, 'userLeft', {
-          username: sessionStore.username
-        })
+      if (sessionCode && websocketService.isWebSocketConnected()) {
+        if (isCreator) {
+          // Si es el creador, notificar a todos que la sesión se cerró
+          console.log('🚪 Creador cerrando sesión, expulsando a todos los usuarios...')
+          websocketService.send(sessionCode, 'creatorLeft', {
+            username: username,
+            message: 'El creador de la sesión ha salido. La sesión se ha cerrado.'
+          })
+        } else {
+          // Si no es creador, solo notificar que salió
+          websocketService.send(sessionCode, 'userLeft', {
+            username: username
+          })
+        }
       }
 
       console.log('Logout exitoso:', response)

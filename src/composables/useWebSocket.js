@@ -4,6 +4,7 @@
  */
 
 import { onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import websocketService from '@/services/websocket.service'
 import { useSessionStore } from '@/stores/session.store'
 
@@ -20,6 +21,7 @@ import { useSessionStore } from '@/stores/session.store'
  */
 export function useWebSocket(eventHandlers = {}) {
   const sessionStore = useSessionStore()
+  const router = useRouter()
 
   /**
    * Conectar y suscribirse al montar el componente
@@ -32,6 +34,18 @@ export function useWebSocket(eventHandlers = {}) {
       // Suscribirse al canal de la sesión
       if (sessionStore.sessionCode) {
         websocketService.subscribe(sessionStore.sessionCode, (message) => {
+          // HANDLER GLOBAL: Si el creador salió, expulsar a todos
+          if (message.event === 'creatorLeft') {
+            console.log('🚪 El creador ha salido de la sesión')
+            alert(message.message || 'El creador de la sesión ha salido. Serás redirigido al inicio.')
+
+            // Limpiar sesión y redirigir
+            sessionStore.clearSession()
+            websocketService.disconnect()
+            router.push('/')
+            return
+          }
+
           // Buscar handler para este evento
           const handler = eventHandlers[message.event]
 
