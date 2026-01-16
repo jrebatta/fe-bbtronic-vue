@@ -154,10 +154,53 @@ onMounted(async () => {
 
   // Configurar callback de reconexión
   websocketService.setReconnectCallback(async () => {
-    console.log('🔄 WebSocket reconectado, verificando estado del juego...')
-    await checkGameStatus()
+    console.log('🔄 WebSocket reconectado, sincronizando estado...')
+    await syncSessionState()
   })
 })
+
+/**
+ * Sincronizar estado completo de la sesión después de reconexión
+ * Usa el endpoint /sync optimizado que devuelve toda la información en una sola llamada
+ */
+async function syncSessionState() {
+  try {
+    console.log('🔄 Sincronizando estado de la sesión...')
+    const data = await apiService.syncSession(sessionStore.sessionCode)
+
+    console.log(`📊 Sync recibido - Timestamp: ${new Date(data.timestamp).toLocaleTimeString()}`)
+
+    // Actualizar lista de usuarios
+    if (Array.isArray(data.users)) {
+      console.log(`✅ Lista de usuarios actualizada: ${data.users.length} usuarios`)
+      console.log('📋 Usuarios:', data.users.map(u => `${u.username} (${u.connected ? 'conectado' : 'desconectado'})`))
+      sessionStore.setUsers(data.users)
+    }
+
+    // Actualizar creador
+    if (data.creator) {
+      sessionStore.setCreator(data.creator)
+    }
+
+    // Actualizar estado del juego si existe
+    if (data.gameState && data.gameState.roundId) {
+      console.log(`🎮 Round ID detectado: ${data.gameState.roundId}`)
+      sessionStore.setCurrentRoundId(data.gameState.roundId)
+    }
+
+    // NO redirigir automáticamente al juego desde el lobby
+    // Si el usuario está en el lobby, debe quedarse ahí
+    // Solo el evento WebSocket del creador iniciando un juego debe redirigir
+    if (data.currentGame) {
+      console.log(`ℹ️ Juego en curso detectado: ${data.currentGame}, pero el usuario está en lobby`)
+      console.log(`📊 Estado del juego: ${data.gameState?.status} - Fase: ${data.gameState?.phase}`)
+    }
+
+    console.log('✅ Estado sincronizado correctamente')
+  } catch (err) {
+    console.error('❌ Error al sincronizar estado:', err)
+  }
+}
 
 /**
  * Verificar si el juego ya inició y redirigir
@@ -192,6 +235,13 @@ async function checkGameStatus() {
  * Iniciar un juego
  */
 async function startGame(gameType) {
+  // Solo el creador puede iniciar juegos
+  if (!sessionStore.isCreator) {
+    console.warn('⚠️ Solo el creador puede iniciar juegos')
+    error.value = 'Solo el creador puede iniciar juegos'
+    return
+  }
+
   try {
     error.value = ''
 
@@ -251,6 +301,13 @@ function confirmKickUser(user) {
  * Expulsar usuario
  */
 async function kickUser(username) {
+  // Solo el creador puede expulsar usuarios
+  if (!sessionStore.isCreator) {
+    console.warn('⚠️ Solo el creador puede expulsar usuarios')
+    error.value = 'Solo el creador puede expulsar usuarios'
+    return
+  }
+
   try {
     // Buscar el sessionToken del usuario (en el código original se usa username)
     // Como no tenemos acceso al sessionToken de otros usuarios,

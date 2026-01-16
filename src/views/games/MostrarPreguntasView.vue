@@ -21,6 +21,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useSession } from '@/composables/useSession'
 import { useWebSocket } from '@/composables/useWebSocket'
 import apiService from '@/services/api.service'
+import websocketService from '@/services/websocket.service'
 import { GameLayout, QuestionCard } from '@/components/common'
 
 const router = useRouter()
@@ -49,9 +50,40 @@ onMounted(async () => {
   } catch (err) {
     console.error('Error:', err)
   }
+
+  // Configurar callback de reconexión para verificar si el juego sigue activo
+  websocketService.setReconnectCallback(async () => {
+    console.log('🔄 Reconectando en MostrarPreguntas, verificando estado del juego...')
+    await checkGameStatus()
+  })
 })
 
+/**
+ * Verificar si el juego sigue activo después de reconexión
+ */
+async function checkGameStatus() {
+  try {
+    const syncData = await apiService.syncSession(sessionStore.sessionCode)
+
+    // Si ya no hay juego activo o cambió de juego, volver al lobby
+    if (!syncData.currentGame || syncData.currentGame !== 'preguntas-directas') {
+      console.log('⚠️ Juego no activo o cambió, volviendo al lobby')
+      router.push({ name: 'lobby' })
+    } else {
+      console.log('✅ Juego activo, continuando en MostrarPreguntas')
+    }
+  } catch (err) {
+    console.error('❌ Error al verificar estado del juego:', err)
+  }
+}
+
 async function fetchNext() {
+  // Solo el creador puede obtener la siguiente pregunta
+  if (!sessionStore.isCreator) {
+    console.warn('⚠️ Solo el creador puede obtener la siguiente pregunta')
+    return
+  }
+
   try {
     const response = await apiService.getNextRandomQuestion(
       sessionStore.sessionCode,
@@ -66,13 +98,30 @@ async function fetchNext() {
   }
 }
 
-function returnToLobby() {
-  // Marcar que ya se jugó una ronda de Preguntas Directas
-  sessionStore.markPreguntasDirectasPlayed()
-  console.log('✅ Ronda completada, volviendo al lobby')
+async function returnToLobby() {
+  // Solo el creador puede volver al lobby
+  if (!sessionStore.isCreator) {
+    console.warn('⚠️ Solo el creador puede volver al lobby')
+    return
+  }
 
-  send('returnToLobby', { isCreator: true })
-  router.push({ name: 'lobby' })
+  try {
+    // Terminar el juego en el backend (limpia currentGame)
+    await apiService.endCurrentGame(sessionStore.sessionCode)
+
+    // Marcar que ya se jugó una ronda de Preguntas Directas
+    sessionStore.markPreguntasDirectasPlayed()
+    console.log('✅ Ronda completada, volviendo al lobby')
+
+    // Notificar a todos los usuarios que vuelvan al lobby
+    send('returnToLobby', { isCreator: true })
+    router.push({ name: 'lobby' })
+  } catch (err) {
+    console.error('Error al terminar el juego:', err)
+    // Aun con error, intentar volver al lobby
+    send('returnToLobby', { isCreator: true })
+    router.push({ name: 'lobby' })
+  }
 }
 
 async function handleLogout() {

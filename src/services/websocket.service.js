@@ -57,20 +57,45 @@ class WebSocketService {
    * Verificar conexión y reconectar si es necesario
    */
   async handleReconnectIfNeeded() {
+    // Si ya está conectando, no intentar de nuevo
+    if (this.isConnecting) {
+      console.log('⏳ Ya hay un intento de conexión en curso...')
+      return
+    }
+
+    // Si no está conectado Y hay suscripciones pendientes, reconectar
     if (!this.isWebSocketConnected() && this.pendingSubscriptions.size > 0) {
       console.log('🔄 Reconectando WebSocket después de visibilidad...')
+      console.log(`📊 Suscripciones pendientes: ${this.pendingSubscriptions.size}`)
+
       try {
+        // Resetear intentos para permitir reconexión agresiva en mobile
+        this.reconnectAttempts = 0
+
         await this.reconnect()
+
         // Re-suscribir a todos los canales pendientes
         this.resubscribeAll()
 
         // Ejecutar callback de reconexión si existe
         if (this.reconnectCallback && typeof this.reconnectCallback === 'function') {
-          console.log('🔄 Ejecutando callback de reconexión...')
+          console.log('🔄 Ejecutando callback de reconexión para sincronizar estado...')
           await this.reconnectCallback()
         }
+
+        console.log('✅ Reconexión completada exitosamente')
       } catch (error) {
-        console.error('Error al reconectar:', error)
+        console.error('❌ Error al reconectar:', error)
+        // Intentar de nuevo después de un delay
+        setTimeout(() => this.handleReconnectIfNeeded(), 3000)
+      }
+    } else if (this.isWebSocketConnected()) {
+      console.log('✅ WebSocket ya está conectado')
+
+      // Aunque esté conectado, ejecutar el callback para sincronizar estado
+      if (this.reconnectCallback && typeof this.reconnectCallback === 'function') {
+        console.log('🔄 Sincronizando estado aunque ya esté conectado...')
+        await this.reconnectCallback()
       }
     }
   }
@@ -160,18 +185,21 @@ class WebSocketService {
     console.log(
       `🔄 Reconectando en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
     )
-    // Ejecutar callback de reconexión si existe
-    if (this.reconnectCallback && typeof this.reconnectCallback === 'function') {
-      console.log('🔄 Ejecutando callback de reconexión automática...')
-      await this.reconnectCallback()
-    }
 
     setTimeout(async () => {
       try {
         await this.reconnect()
         this.resubscribeAll()
+
+        // Ejecutar callback de reconexión DESPUÉS de reconexión exitosa
+        if (this.reconnectCallback && typeof this.reconnectCallback === 'function') {
+          console.log('🔄 Ejecutando callback de reconexión automática...')
+          await this.reconnectCallback()
+        }
+
+        console.log('✅ Reconexión automática completada exitosamente')
       } catch (error) {
-        console.error('Error en reconexión automática:', error)
+        console.error('❌ Error en reconexión automática:', error)
       }
     }, delay)
   }
@@ -238,7 +266,15 @@ class WebSocketService {
    */
   send(sessionCode, event, data = {}) {
     if (!this.stompClient || !this.isConnected) {
-      throw new Error('WebSocket no está conectado. No se puede enviar mensaje.')
+      console.error('❌ WebSocket no está conectado. No se puede enviar mensaje.')
+      console.log('🔄 Intentando reconectar...')
+
+      // Intentar reconectar automáticamente
+      this.handleReconnectIfNeeded()
+
+      throw new Error(
+        `WebSocket no está conectado. Evento "${event}" no se pudo enviar. Reintentando conexión...`,
+      )
     }
 
     const topic = `/topic/${sessionCode}`
@@ -248,7 +284,9 @@ class WebSocketService {
       this.stompClient.send(topic, {}, JSON.stringify(payload))
       console.log(`📤 Mensaje enviado a ${topic}:`, payload)
     } catch (error) {
-      console.error('Error al enviar mensaje por WebSocket:', error)
+      console.error('❌ Error al enviar mensaje por WebSocket:', error)
+      // Marcar como desconectado para forzar reconexión
+      this.isConnected = false
       throw error
     }
   }

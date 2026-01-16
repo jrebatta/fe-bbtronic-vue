@@ -69,6 +69,40 @@ class ApiService {
   }
 
   /**
+   * Sincronizar estado completo de la sesión
+   * Endpoint optimizado para reconexión y sincronización después de desconexión
+   * @param {string} sessionCode - Código de sesión
+   * @returns {Promise<{sessionCode: string, creator: string, users: Array, currentGame: string|null, gameState: Object|null, timestamp: number}>}
+   */
+  async syncSession(sessionCode) {
+    const response = await fetch(`${API_BASE_URL}/api/game-sessions/${sessionCode}/sync`)
+
+    if (!response.ok) {
+      throw new Error('Error al sincronizar sesión.')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Terminar el juego actual y volver al lobby
+   * @param {string} sessionCode - Código de sesión
+   * @returns {Promise<void>}
+   */
+  async endCurrentGame(sessionCode) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/end-game`,
+      { method: 'POST' }
+    )
+
+    if (!response.ok) {
+      throw new Error('Error al terminar el juego.')
+    }
+
+    return response.json()
+  }
+
+  /**
    * ========================================
    * INICIAR JUEGOS
    * ========================================
