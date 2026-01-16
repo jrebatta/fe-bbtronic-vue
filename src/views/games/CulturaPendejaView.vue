@@ -56,11 +56,15 @@ async function checkGameStatus() {
     if (!syncData.currentGame || syncData.currentGame !== 'cultura-pendeja') {
       console.log('⚠️ Juego no activo o cambió, volviendo al lobby')
       router.push({ name: 'lobby' })
-    } else {
-      console.log('✅ Juego activo, continuando en CulturaPendeja')
+      return
     }
+
+    console.log('✅ Juego activo, continuando en CulturaPendeja')
   } catch (err) {
     console.error('❌ Error al verificar estado del juego:', err)
+    // Si hay error al sincronizar, asumir que el juego no está activo y volver al lobby
+    console.warn('⚠️ Error al sincronizar, volviendo al lobby por seguridad')
+    router.push({ name: 'lobby' })
   }
 }
 

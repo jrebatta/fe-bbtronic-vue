@@ -69,11 +69,17 @@ async function checkGameStatus() {
     if (!syncData.currentGame || syncData.currentGame !== 'preguntas-directas') {
       console.log('⚠️ Juego no activo o cambió, volviendo al lobby')
       router.push({ name: 'lobby' })
-    } else {
-      console.log('✅ Juego activo, continuando en MostrarPreguntas')
+      return
     }
+
+    // IMPORTANTE: Si el endpoint /end-game aún no existe en el backend,
+    // este código no funcionará correctamente hasta que se implemente
+    console.log('✅ Juego activo, continuando en MostrarPreguntas')
   } catch (err) {
     console.error('❌ Error al verificar estado del juego:', err)
+    // Si hay error al sincronizar, asumir que el juego no está activo y volver al lobby
+    console.warn('⚠️ Error al sincronizar, volviendo al lobby por seguridad')
+    router.push({ name: 'lobby' })
   }
 }
 
@@ -89,6 +95,23 @@ async function fetchNext() {
       sessionStore.sessionCode,
       currentQuestion.value.toUser || ''
     )
+
+    // Verificar si ya se mostraron todas las preguntas
+    if (response.allQuestionsShown) {
+      console.log('✅ Se mostraron todas las preguntas')
+      // Actualizar UI para mostrar mensaje de finalización
+      send('update', {
+        question: {
+          question: response.message || 'Se mostraron todas las preguntas. ¡Ronda completada!',
+          fromUser: '',
+          toUser: ''
+        },
+        numeroDePregunta: questionNumber.value
+      })
+      return
+    }
+
+    // Si hay pregunta, enviarla normalmente
     send('update', {
       question: response.question,
       numeroDePregunta: response.numeroDePregunta
