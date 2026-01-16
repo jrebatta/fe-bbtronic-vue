@@ -102,7 +102,6 @@ const sessionStore = useSessionStore()
   min-height: 100vh;
   font-family: 'Roboto', sans-serif;
   color: #fff;
-  background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #2d0052 100%);
   overflow-x: hidden;
 }
 

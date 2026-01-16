@@ -70,7 +70,6 @@ function jugarEnCasa() {
   min-height: 100vh;
   color: #FFFFFF;
   overflow: hidden;
-  background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #2d0052 100%);
   position: relative;
 }
 
@@ -83,6 +82,14 @@ function jugarEnCasa() {
   z-index: 1;
   padding: 20px;
   animation: fadeIn 1s ease-in;
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 @keyframes fadeIn {
@@ -100,6 +107,7 @@ function jugarEnCasa() {
 .game-buttons-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 25px;
   padding: 40px;
   background: rgba(0, 0, 0, 0.4);
@@ -108,6 +116,7 @@ function jugarEnCasa() {
   border: 1px solid rgba(187, 0, 255, 0.3);
   box-shadow: 0 8px 32px rgba(187, 0, 255, 0.2),
               inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
 }
 
 /* Botones estilo neón espacial */
@@ -131,6 +140,7 @@ function jugarEnCasa() {
               inset 0 1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
   display: block;
+  text-align: center;
 }
 
 .neon-button::before {

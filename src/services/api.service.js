@@ -75,20 +75,56 @@ class ApiService {
    */
 
   /**
-   * Iniciar juego de Preguntas Directas
+   * Iniciar juego de Preguntas Directas (primera ronda)
    * @param {string} sessionCode - Código de sesión
+   * @returns {Promise<{mensaje: string, roundId: string, roundStatus: string}>}
    */
-  async startGame(sessionCode) {
+  async startPreguntasDirectas(sessionCode) {
     const response = await fetch(
-      `${API_BASE_URL}/api/game-sessions/${sessionCode}/start-game`,
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/start-preguntas-directas`,
       { method: 'POST' }
     )
 
     if (!response.ok) {
-      throw new Error('Error al iniciar el juego.')
+      throw new Error('Error al iniciar Preguntas Directas.')
     }
 
-    return response
+    return response.json()
+  }
+
+  /**
+   * Iniciar nueva ronda de Preguntas Directas
+   * @param {string} sessionCode - Código de sesión
+   * @returns {Promise<{roundId: string, status: string, message: string}>}
+   */
+  async startNewRound(sessionCode) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/start-new-round`,
+      { method: 'POST' }
+    )
+
+    if (!response.ok) {
+      throw new Error('Error al iniciar nueva ronda.')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Obtener información de la ronda actual
+   * @param {string} sessionCode - Código de sesión
+   * @returns {Promise<{roundId: string, status: string, currentGame: string, totalQuestions: number, shownQuestions: number}>}
+   */
+  async getRoundInfo(sessionCode) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/round-info`
+    )
+
+    if (!response.ok) {
+      throw new Error('Error al obtener información de ronda.')
+    }
+
+    return response.json()
   }
 
   /**
@@ -182,6 +218,7 @@ class ApiService {
   /**
    * Marcar usuario como listo
    * @param {string} username - Nombre de usuario
+   * @returns {Promise<{username: string, ready: boolean, roundId: string, usersReady: number, totalUsers: number}>}
    */
   async markUserReady(username) {
     const response = await fetch(`${API_BASE_URL}/api/users/${username}/ready`, {
@@ -192,7 +229,7 @@ class ApiService {
       throw new Error('Error al marcar usuario como listo.')
     }
 
-    return response
+    return response.json()
   }
 
   /**

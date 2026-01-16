@@ -67,6 +67,10 @@ async function fetchNext() {
 }
 
 function returnToLobby() {
+  // Marcar que ya se jugó una ronda de Preguntas Directas
+  sessionStore.markPreguntasDirectasPlayed()
+  console.log('✅ Ronda completada, volviendo al lobby')
+
   send('returnToLobby', { isCreator: true })
   router.push({ name: 'lobby' })
 }

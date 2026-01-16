@@ -8,7 +8,6 @@ body {
     min-height: 100vh;
     color: #FFFFFF;
     overflow: auto;
-    background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #2d0052 100%);
     padding: 10px;
     box-sizing: border-box;
 }

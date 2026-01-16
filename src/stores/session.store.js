@@ -37,6 +37,18 @@ export const useSessionStore = defineStore('session', () => {
    */
   const creator = ref(null)
 
+  /**
+   * ID de la ronda actual
+   */
+  const currentRoundId = ref(sessionStorage.getItem('currentRoundId') || null)
+
+  /**
+   * Indica si ya se ha jugado al menos una ronda de Preguntas Directas
+   */
+  const hasPlayedPreguntasDirectas = ref(
+    sessionStorage.getItem('hasPlayedPreguntasDirectas') === 'true' || false
+  )
+
   // ========================================
   // GETTERS (Computed)
   // ========================================
@@ -125,6 +137,36 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   /**
+   * Establecer ID de ronda actual
+   * @param {string} roundId - ID de la ronda
+   */
+  function setCurrentRoundId(roundId) {
+    currentRoundId.value = roundId
+    sessionStorage.setItem('currentRoundId', roundId)
+    console.log('✅ Round ID establecido:', roundId)
+  }
+
+  /**
+   * Marcar que se ha jugado Preguntas Directas al menos una vez
+   */
+  function markPreguntasDirectasPlayed() {
+    hasPlayedPreguntasDirectas.value = true
+    sessionStorage.setItem('hasPlayedPreguntasDirectas', 'true')
+    console.log('✅ Preguntas Directas marcado como jugado')
+  }
+
+  /**
+   * Resetear el flag de juego previo (útil al volver al lobby)
+   */
+  function resetGameFlags() {
+    hasPlayedPreguntasDirectas.value = false
+    sessionStorage.removeItem('hasPlayedPreguntasDirectas')
+    currentRoundId.value = null
+    sessionStorage.removeItem('currentRoundId')
+    console.log('✅ Flags de juego reseteados')
+  }
+
+  /**
    * Agregar un usuario a la lista
    * @param {Object} user - Usuario a agregar
    */
@@ -177,6 +219,8 @@ export const useSessionStore = defineStore('session', () => {
     sessionCode.value = null
     users.value = []
     creator.value = null
+    currentRoundId.value = null
+    hasPlayedPreguntasDirectas.value = false
 
     // Limpiar sessionStorage
     sessionStorage.clear()
@@ -217,6 +261,8 @@ export const useSessionStore = defineStore('session', () => {
     sessionCode,
     users,
     creator,
+    currentRoundId,
+    hasPlayedPreguntasDirectas,
 
     // Getters
     isAuthenticated,
@@ -229,6 +275,9 @@ export const useSessionStore = defineStore('session', () => {
     setSessionCode,
     setUsers,
     setCreator,
+    setCurrentRoundId,
+    markPreguntasDirectasPlayed,
+    resetGameFlags,
     addUser,
     removeUser,
     updateUser,

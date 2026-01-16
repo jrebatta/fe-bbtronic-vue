@@ -97,6 +97,7 @@ async function submitQuestions() {
   error.value = ''
 
   try {
+    // Enviar todas las preguntas
     for (const user of otherUsers.value) {
       await apiService.sendQuestion(sessionStore.sessionCode, {
         fromUser: sessionStore.username,
@@ -106,13 +107,22 @@ async function submitQuestions() {
       })
     }
 
-    await apiService.markUserReady(sessionStore.username)
-    const response = await apiService.checkAllReady(sessionStore.sessionCode)
+    // Marcar usuario como listo y capturar roundId
+    const readyResponse = await apiService.markUserReady(sessionStore.username)
 
-    if (response.allReady) {
+    // Guardar el roundId en el store
+    if (readyResponse.roundId) {
+      sessionStore.setCurrentRoundId(readyResponse.roundId)
+      console.log('✅ Usuario listo, roundId:', readyResponse.roundId)
+    }
+
+    // Verificar si todos están listos
+    const checkResponse = await apiService.checkAllReady(sessionStore.sessionCode)
+
+    if (checkResponse.allReady) {
       send('allReady')
     } else {
-      error.value = response.message || 'Esperando a otros usuarios...'
+      error.value = checkResponse.message || 'Esperando a otros usuarios...'
     }
   } catch (err) {
     error.value = 'Error al enviar preguntas'

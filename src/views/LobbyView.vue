@@ -88,8 +88,8 @@ const otherUsers = computed(() => {
  * Event handlers de WebSocket
  */
 const { send } = useWebSocket({
-  gameStarted: () => {
-    console.log('Juego iniciado, redirigiendo...')
+  preguntasDirectasStarted: () => {
+    console.log('Preguntas Directas iniciado, redirigiendo...')
     router.push({ name: 'preguntas-directas' })
   },
   yoNuncaNuncaStarted: () => {
@@ -197,8 +197,21 @@ async function startGame(gameType) {
 
     switch (gameType) {
       case 'preguntas-directas':
-        await apiService.startGame(sessionStore.sessionCode)
-        send('gameStarted')
+        // Verificar si ya se jugó antes para usar el endpoint correcto
+        if (sessionStore.hasPlayedPreguntasDirectas) {
+          // Nueva ronda (2da, 3ra, etc.)
+          console.log('🔄 Iniciando nueva ronda de Preguntas Directas...')
+          const newRoundResponse = await apiService.startNewRound(sessionStore.sessionCode)
+          sessionStore.setCurrentRoundId(newRoundResponse.roundId)
+          console.log('✅ Nueva ronda iniciada, roundId:', newRoundResponse.roundId)
+        } else {
+          // Primera ronda
+          console.log('🎮 Iniciando primera ronda de Preguntas Directas...')
+          const firstRoundResponse = await apiService.startPreguntasDirectas(sessionStore.sessionCode)
+          sessionStore.setCurrentRoundId(firstRoundResponse.roundId)
+          console.log('✅ Primera ronda iniciada, roundId:', firstRoundResponse.roundId)
+        }
+        send('preguntasDirectasStarted')
         break
       case 'yo-nunca-nunca':
         await apiService.startYoNuncaNunca(sessionStore.sessionCode)
@@ -278,7 +291,6 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   font-family: 'Roboto', sans-serif;
   color: #fff;
-  background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #2d0052 100%);
   overflow-x: hidden;
 }
 
