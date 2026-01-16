@@ -104,6 +104,21 @@ async function checkGameStatus() {
       return
     }
 
+    // Si el juego sigue siendo preguntas-directas, verificar si todos ya están listos
+    // y el juego avanzó a la fase de mostrar preguntas
+    try {
+      const checkResponse = await apiService.checkAllReady(sessionStore.sessionCode)
+
+      if (checkResponse.allReady) {
+        console.log('✅ Todos los usuarios ya están listos, avanzando a mostrar preguntas')
+        // Todos ya enviaron sus preguntas, redirigir a MostrarPreguntas
+        router.push({ name: 'mostrar-preguntas' })
+        return
+      }
+    } catch (checkErr) {
+      console.log('ℹ️ No se pudo verificar estado de usuarios listos, continuando en PreguntasDirectas')
+    }
+
     console.log('✅ Juego activo, continuando en PreguntasDirectas')
   } catch (err) {
     console.error('❌ Error al verificar estado del juego:', err)
