@@ -104,22 +104,21 @@ async function checkGameStatus() {
       return
     }
 
-    // Si el juego sigue siendo preguntas-directas, verificar si todos ya están listos
-    // y el juego avanzó a la fase de mostrar preguntas
-    try {
-      const checkResponse = await apiService.checkAllReady(sessionStore.sessionCode)
+    // Si el juego sigue siendo preguntas-directas, verificar si ya avanzó a la fase de mostrar preguntas
+    // Esto se indica por la presencia de un roundId en el gameState
+    if (syncData.gameState && syncData.gameState.roundId) {
+      console.log('✅ Juego ya avanzó a mostrar preguntas, redirigiendo...')
+      console.log(`🎮 Round ID: ${syncData.gameState.roundId}`)
 
-      if (checkResponse.allReady) {
-        console.log('✅ Todos los usuarios ya están listos, avanzando a mostrar preguntas')
-        // Todos ya enviaron sus preguntas, redirigir a MostrarPreguntas
-        router.push({ name: 'mostrar-preguntas' })
-        return
-      }
-    } catch (checkErr) {
-      console.log('ℹ️ No se pudo verificar estado de usuarios listos, continuando en PreguntasDirectas')
+      // Guardar el roundId en el store
+      sessionStore.setCurrentRoundId(syncData.gameState.roundId)
+
+      // Redirigir a la vista de mostrar preguntas
+      router.push({ name: 'mostrar-preguntas' })
+      return
     }
 
-    console.log('✅ Juego activo, continuando en PreguntasDirectas')
+    console.log('✅ Juego activo, continuando en PreguntasDirectas (escribiendo preguntas)')
   } catch (err) {
     console.error('❌ Error al verificar estado del juego:', err)
     // Si hay error al sincronizar, asumir que el juego no está activo y volver al lobby
