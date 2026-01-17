@@ -94,6 +94,13 @@ onMounted(async () => {
  * Verificar si el juego sigue activo después de reconexión
  */
 async function checkGameStatus() {
+  // Validar que existe un sessionCode antes de sincronizar
+  if (!sessionStore.sessionCode) {
+    console.warn('⚠️ No hay sessionCode, redirigiendo al home')
+    router.push('/')
+    return
+  }
+
   try {
     const syncData = await apiService.syncSession(sessionStore.sessionCode)
 
@@ -104,10 +111,12 @@ async function checkGameStatus() {
       return
     }
 
-    // Si el juego sigue siendo preguntas-directas, verificar si ya avanzó a la fase de mostrar preguntas
-    // Esto se indica por la presencia de un roundId en el gameState
-    if (syncData.gameState && syncData.gameState.roundId) {
-      console.log('✅ Juego ya avanzó a mostrar preguntas, redirigiendo...')
+    // Verificar si todos los usuarios están listos (han enviado sus preguntas)
+    const allUsersReady = syncData.users && syncData.users.every(u => u.ready === true)
+
+    // Si hay roundId Y todos están listos, significa que el juego avanzó a mostrar preguntas
+    if (syncData.gameState && syncData.gameState.roundId && allUsersReady) {
+      console.log('✅ Todos los usuarios listos, avanzando a mostrar preguntas')
       console.log(`🎮 Round ID: ${syncData.gameState.roundId}`)
 
       // Guardar el roundId en el store
@@ -129,6 +138,12 @@ async function checkGameStatus() {
 
 async function submitQuestions() {
   if (questionsSent.value) return
+
+  // Validar que haya al menos otro usuario para enviar preguntas
+  if (otherUsers.value.length === 0) {
+    error.value = 'Necesitas al menos otro jugador para comenzar.'
+    return
+  }
 
   const allFilled = otherUsers.value.every(u => questions.value[u.username]?.trim())
   if (!allFilled) {

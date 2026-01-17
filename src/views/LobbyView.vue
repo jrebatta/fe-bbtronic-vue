@@ -164,6 +164,12 @@ onMounted(async () => {
  * Usa el endpoint /sync optimizado que devuelve toda la información en una sola llamada
  */
 async function syncSessionState() {
+  // Validar que existe un sessionCode antes de sincronizar
+  if (!sessionStore.sessionCode) {
+    console.warn('⚠️ No hay sessionCode, no se puede sincronizar')
+    return
+  }
+
   try {
     console.log('🔄 Sincronizando estado de la sesión...')
     const data = await apiService.syncSession(sessionStore.sessionCode)

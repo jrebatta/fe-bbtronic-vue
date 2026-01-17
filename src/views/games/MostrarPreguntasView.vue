@@ -62,6 +62,13 @@ onMounted(async () => {
  * Verificar si el juego sigue activo después de reconexión
  */
 async function checkGameStatus() {
+  // Validar que existe un sessionCode antes de sincronizar
+  if (!sessionStore.sessionCode) {
+    console.warn('⚠️ No hay sessionCode, redirigiendo al home')
+    router.push('/')
+    return
+  }
+
   try {
     const syncData = await apiService.syncSession(sessionStore.sessionCode)
 
