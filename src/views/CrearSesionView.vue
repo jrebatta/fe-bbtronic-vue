@@ -1,29 +1,56 @@
 <template>
   <div class="crear-sesion-view">
-    <BackgroundVideo :low-opacity="false" />
+    <BackgroundVideo />
 
-    <div class="container">
-      <h1 class="page-title">Crear Lobby</h1>
+    <div class="page-wrapper">
+      <!-- Back link -->
+      <router-link to="/" class="back-link" aria-label="Volver al inicio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Volver
+      </router-link>
 
-      <form class="session-form" @submit.prevent="handleSubmit">
-        <div class="form-group">
-          <input
-            v-model="username"
-            type="text"
-            class="form-control"
-            placeholder="Nombre"
-            required
-            aria-label="Nombre de usuario"
-            :disabled="loading"
-          />
+      <!-- Card -->
+      <div class="form-card">
+        <!-- Icon -->
+        <div class="card-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
         </div>
 
-        <BaseButton type="submit" variant="primary" :disabled="loading" :loading="loading">
-          Crear
-        </BaseButton>
+        <h1 class="card-title">Crear Sala</h1>
+        <p class="card-subtitle">Serás el anfitrión de la sesión</p>
 
-        <ErrorMessage v-if="error" :message="error" />
-      </form>
+        <form @submit.prevent="handleSubmit" novalidate>
+          <div class="field-group">
+            <label class="field-label" for="username">Tu nombre</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              class="input-field"
+              placeholder="¿Cómo te llamas?"
+              autocomplete="nickname"
+              required
+              :disabled="loading"
+            />
+          </div>
+
+          <BaseButton
+            type="submit"
+            variant="primary"
+            :disabled="loading"
+            :loading="loading"
+            :full-width="true"
+          >
+            Crear Sesión
+          </BaseButton>
+
+          <ErrorMessage v-if="error" :message="error" />
+        </form>
+      </div>
     </div>
 
     <LoadingSpinner :show="loading" message="Creando sesión..." />
@@ -31,11 +58,6 @@
 </template>
 
 <script setup>
-/**
- * CrearSesionView - Vista para crear una nueva sesión
- * Migrado desde crear_sesion.html y crear_sesion.js
- */
-
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
@@ -47,14 +69,9 @@ const router = useRouter()
 const sessionStore = useSessionStore()
 const { loading, error, execute } = useLoading()
 
-// State
 const username = ref('')
 
-/**
- * Manejar envío del formulario
- */
 async function handleSubmit() {
-  // Validar que el username no esté vacío
   if (!username.value.trim()) {
     error.value = 'El nombre de usuario es obligatorio.'
     return
@@ -62,24 +79,12 @@ async function handleSubmit() {
 
   try {
     await execute(async () => {
-      console.log('🚀 Iniciando creación de sesión...')
-
-      // Llamar al servicio para crear la sesión
       const sessionData = await apiService.createSession(username.value.trim())
-      console.log('✅ Sesión creada:', sessionData)
-
-      // Guardar sesión en el store
       sessionStore.setSession(sessionData.sessionToken, username.value.trim())
       sessionStore.setSessionCode(sessionData.sessionCode)
-
-      console.log('✅ Datos guardados en store, redirigiendo al lobby...')
-
-      // Redirigir al lobby
       await router.push({ name: 'lobby' })
-      console.log('✅ Navegación completada')
     })
   } catch (err) {
-    // El error ya está manejado por useLoading
     console.error('❌ Error al crear sesión:', err)
     error.value = err.message || 'Error al crear la sesión'
   }
@@ -90,99 +95,160 @@ async function handleSubmit() {
 .crear-sesion-view {
   position: relative;
   min-height: 100vh;
-  font-family: 'Roboto', sans-serif;
-  color: #fff;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.container {
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
+  gap: 20px;
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.page-title {
-  font-size: 48px;
-  font-weight: 700;
-  text-align: center;
-  color: #fff;
-  margin-bottom: 40px;
-  text-shadow:
-    0 0 20px rgba(187, 0, 255, 0.8),
-    0 0 40px rgba(187, 0, 255, 0.6),
-    0 0 60px rgba(187, 0, 255, 0.4);
-  animation: neonGlow 2s ease-in-out infinite alternate;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes neonGlow {
-  from {
-    text-shadow:
-      0 0 20px rgba(187, 0, 255, 0.8),
-      0 0 40px rgba(187, 0, 255, 0.6),
-      0 0 60px rgba(187, 0, 255, 0.4);
-  }
-  to {
-    text-shadow:
-      0 0 30px rgba(187, 0, 255, 1),
-      0 0 60px rgba(187, 0, 255, 0.8),
-      0 0 90px rgba(187, 0, 255, 0.6);
-  }
+/* Back link */
+.back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(240, 230, 255, 0.5);
+  text-decoration: none;
+  transition: color 200ms ease;
+  letter-spacing: 0.2px;
+}
+.back-link:hover {
+  color: #bb00ff;
 }
 
-.session-form {
+/* Card */
+.form-card {
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
+  background: rgba(12, 8, 28, 0.82);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(187, 0, 255, 0.28);
+  border-radius: 22px;
+  padding: 36px 32px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(187, 0, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Top accent */
+.form-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #bb00ff, transparent);
+  border-radius: 0 0 2px 2px;
+}
+
+.card-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(187, 0, 255, 0.12);
   border: 1px solid rgba(187, 0, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(187, 0, 255, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cc44ff;
+  margin-bottom: 6px;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.card-title {
+  font-family: 'Righteous', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #f0e6ff;
+  text-shadow: 0 0 20px rgba(187, 0, 255, 0.7);
+  letter-spacing: 0.5px;
 }
 
-.form-control {
+.card-subtitle {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: rgba(240, 230, 255, 0.45);
+  margin-bottom: 12px;
+}
+
+form {
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(187, 0, 255, 0.5);
-  color: #fff;
-  padding: 15px;
-  font-size: 16px;
-  border-radius: 10px;
-  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.form-control::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
-.form-control:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #bb00ff;
-  box-shadow: 0 0 20px rgba(187, 0, 255, 0.4);
+.field-label {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(240, 230, 255, 0.6);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Use the global input-field styles */
+.input-field {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(187, 0, 255, 0.25);
+  color: #f0e6ff;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400;
+  border-radius: 11px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
   outline: none;
-  color: #fff;
 }
 
-.form-control:disabled {
-  opacity: 0.6;
+.input-field::placeholder {
+  color: rgba(240, 230, 255, 0.35);
+  font-weight: 300;
+}
+
+.input-field:focus {
+  background: rgba(187, 0, 255, 0.07);
+  border-color: #bb00ff;
+  box-shadow: 0 0 0 3px rgba(187, 0, 255, 0.14), 0 0 16px rgba(187, 0, 255, 0.18);
+}
+
+.input-field:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 36px;
-  }
-
-  .session-form {
-    padding: 30px 20px;
+@media (max-width: 480px) {
+  .form-card {
+    padding: 28px 20px;
   }
 }
 </style>

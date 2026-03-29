@@ -65,9 +65,12 @@ defineProps({
 }
 
 .loading-message {
-  color: #fff;
-  font-size: 18px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(240, 230, 255, 0.8);
   text-align: center;
-  text-shadow: 0 0 10px rgba(187, 0, 255, 0.8);
+  text-shadow: 0 0 10px rgba(187, 0, 255, 0.6);
+  letter-spacing: 0.3px;
 }
 </style>
