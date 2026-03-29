@@ -1,287 +1,294 @@
 <template>
   <div class="unirse-sesion-view">
-    <!-- Video de fondo -->
-    <video autoplay loop muted playsinline id="backgroundVideo" class="background-video">
-      <source src="@/assets/videos/fondo2.webm" type="video/webm">
-      Tu navegador no soporta el video HTML5.
-    </video>
+    <BackgroundVideo />
 
-    <!-- Contenedor principal -->
-    <div class="container vh-100 d-flex flex-column justify-content-center align-items-center">
-      <h1 class="mb-4 page-title">Unirse a una Sesión</h1>
+    <div class="page-wrapper">
+      <!-- Back link -->
+      <router-link to="/" class="back-link" aria-label="Volver al inicio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Volver
+      </router-link>
 
-      <form id="joinSessionForm" class="w-100 session-form" @submit.prevent="handleSubmit">
-        <div class="mb-3">
-          <input
-            v-model="sessionCode"
-            id="sessionCode"
-            class="form-control"
-            placeholder="Código"
-            required
-            maxlength="4"
+      <!-- Card -->
+      <div class="form-card">
+        <!-- Icon -->
+        <div class="card-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+        </div>
+
+        <h1 class="card-title">Unirse</h1>
+        <p class="card-subtitle">Ingresa el código de sesión</p>
+
+        <form @submit.prevent="handleSubmit" novalidate>
+          <!-- Code input with large display -->
+          <div class="field-group">
+            <label class="field-label" for="sessionCode">Código</label>
+            <input
+              id="sessionCode"
+              v-model="sessionCode"
+              type="text"
+              class="input-field code-input"
+              placeholder="A1B2"
+              maxlength="4"
+              autocomplete="off"
+              spellcheck="false"
+              required
+              :disabled="loading"
+              @input="validateSessionCode"
+            />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="username">Tu nombre</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              class="input-field"
+              placeholder="¿Cómo te llamas?"
+              autocomplete="nickname"
+              required
+              :disabled="loading"
+            />
+          </div>
+
+          <BaseButton
+            type="submit"
+            variant="success"
             :disabled="loading"
-            @input="validateSessionCode"
+            :loading="loading"
+            :full-width="true"
           >
-        </div>
+            Entrar a la Sala
+          </BaseButton>
 
-        <div class="mb-3">
-          <input
-            v-model="username"
-            type="text"
-            id="username"
-            class="form-control"
-            placeholder="Nombre"
-            required
-            :disabled="loading"
-          >
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100 btn-submit" :disabled="loading">
-          {{ loading ? 'Uniéndose...' : 'Unirse' }}
-        </button>
-
-        <div v-if="error" id="error" class="text-danger mt-3 error-message">
-          {{ error }}
-        </div>
-      </form>
+          <ErrorMessage v-if="error" :message="error" />
+        </form>
+      </div>
     </div>
 
-    <!-- Spinner de carga -->
-    <div v-if="loading" id="loadingSpinner" class="loading-spinner-overlay">
-      <div class="spinner"></div>
-    </div>
+    <LoadingSpinner :show="loading" message="Uniéndose..." />
   </div>
 </template>
 
 <script setup>
-/**
- * UnirseSesionView - Vista para unirse a una sesión existente
- * Migrado desde unirse_sesion.html y unirse_sesion.js
- */
-
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import { useLoading } from '@/composables/useLoading'
 import apiService from '@/services/api.service'
+import { BackgroundVideo, BaseButton, ErrorMessage, LoadingSpinner } from '@/components/common'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
 const { loading, error, execute } = useLoading()
 
-// State
 const sessionCode = ref('')
-const username = ref('')
+const username    = ref('')
 
-/**
- * Validar código de sesión (solo alfanuméricos, máx 4 caracteres)
- */
-function validateSessionCode(event) {
-  const regex = /^[a-zA-Z0-9]{0,4}$/
-  if (!regex.test(sessionCode.value)) {
-    sessionCode.value = sessionCode.value.slice(0, 4)
-  }
+function validateSessionCode() {
+  sessionCode.value = sessionCode.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()
 }
 
-/**
- * Manejar envío del formulario
- */
 async function handleSubmit() {
-  // Validar que ambos campos estén llenos
   if (!sessionCode.value.trim() || !username.value.trim()) {
-    error.value = 'El código de sesión y el nombre de usuario son obligatorios.'
+    error.value = 'El código de sesión y el nombre son obligatorios.'
     return
   }
 
   try {
     await execute(async () => {
-      // Llamar al servicio para unirse a la sesión
       const sessionData = await apiService.joinSession(
         sessionCode.value.trim(),
         username.value.trim()
       )
-
-      // Guardar sesión en el store
       sessionStore.setSession(sessionData.sessionToken, username.value.trim())
       sessionStore.setSessionCode(sessionCode.value.trim())
-
-      // Redirigir al lobby
       router.push({ name: 'lobby' })
     })
   } catch (err) {
-    // El error ya está manejado por useLoading
     console.error('Error al unirse a sesión:', err)
   }
 }
 </script>
 
 <style scoped>
-/* Estilos migrados de unirse_sesion.css */
-
 .unirse-sesion-view {
   position: relative;
   min-height: 100vh;
-  font-family: 'Roboto', sans-serif;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
-.background-video {
-  position: fixed;
-  top: 0;
-  left: 0;
+.page-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
-  opacity: 0.7;
-}
-
-.page-title {
-  font-size: 48px;
-  font-weight: 700;
-  text-align: center;
-  color: #fff;
-  text-shadow:
-    0 0 20px rgba(187, 0, 255, 0.8),
-    0 0 40px rgba(187, 0, 255, 0.6),
-    0 0 60px rgba(187, 0, 255, 0.4);
-  animation: neonGlow 2s ease-in-out infinite alternate;
-}
-
-@keyframes neonGlow {
-  from {
-    text-shadow:
-      0 0 20px rgba(187, 0, 255, 0.8),
-      0 0 40px rgba(187, 0, 255, 0.6),
-      0 0 60px rgba(187, 0, 255, 0.4);
-  }
-  to {
-    text-shadow:
-      0 0 30px rgba(187, 0, 255, 1),
-      0 0 60px rgba(187, 0, 255, 0.8),
-      0 0 90px rgba(187, 0, 255, 0.6);
-  }
-}
-
-.session-form {
   max-width: 400px;
-  padding: 40px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
-  border: 1px solid rgba(187, 0, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(187, 0, 255, 0.2);
-}
-
-.form-control {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(187, 0, 255, 0.5);
-  color: #fff;
-  padding: 15px;
-  font-size: 16px;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-}
-
-.form-control::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.form-control:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #bb00ff;
-  box-shadow: 0 0 20px rgba(187, 0, 255, 0.4);
-  outline: none;
-  color: #fff;
-}
-
-.form-control:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, rgba(187, 0, 255, 0.8), rgba(80, 0, 180, 0.8));
-  border: 2px solid #bb00ff;
-  padding: 15px 30px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 10px;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(187, 0, 255, 0.4);
-  cursor: pointer;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(187, 0, 255, 1), rgba(80, 0, 180, 1));
-  border-color: #ff00ff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(187, 0, 255, 0.6);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error-message {
-  color: #ff4757;
-  background: rgba(255, 71, 87, 0.2);
-  border: 1px solid rgba(255, 71, 87, 0.5);
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  text-align: center;
-  animation: shake 0.5s;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-10px); }
-  75% { transform: translateX(10px); }
-}
-
-.loading-spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  padding: 24px 20px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  z-index: 9999;
+  gap: 20px;
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: 6px solid rgba(187, 0, 255, 0.3);
-  border-top-color: #bb00ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(240, 230, 255, 0.5);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+.back-link:hover {
+  color: #bb00ff;
 }
 
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 36px;
-  }
+.form-card {
+  width: 100%;
+  background: rgba(12, 8, 28, 0.82);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(46, 213, 115, 0.22);
+  border-radius: 22px;
+  padding: 36px 32px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(46, 213, 115, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
 
-  .session-form {
-    padding: 30px 20px;
+.form-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #2ed573, transparent);
+  border-radius: 0 0 2px 2px;
+}
+
+.card-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(46, 213, 115, 0.1);
+  border: 1px solid rgba(46, 213, 115, 0.28);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2ed573;
+  margin-bottom: 6px;
+}
+
+.card-title {
+  font-family: 'Righteous', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #f0e6ff;
+  text-shadow: 0 0 20px rgba(46, 213, 115, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.card-subtitle {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: rgba(240, 230, 255, 0.45);
+  margin-bottom: 12px;
+}
+
+form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field-label {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(240, 230, 255, 0.6);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.input-field {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(187, 0, 255, 0.22);
+  color: #f0e6ff;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400;
+  border-radius: 11px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: rgba(240, 230, 255, 0.3);
+  font-weight: 300;
+}
+
+.input-field:focus {
+  background: rgba(187, 0, 255, 0.07);
+  border-color: #bb00ff;
+  box-shadow: 0 0 0 3px rgba(187, 0, 255, 0.13), 0 0 16px rgba(187, 0, 255, 0.16);
+}
+
+.input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Code input — larger, centered, spaced letters */
+.code-input {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 16px 18px 16px 28px;
+  border-color: rgba(46, 213, 115, 0.3);
+}
+
+.code-input:focus {
+  border-color: #2ed573;
+  box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.12), 0 0 16px rgba(46, 213, 115, 0.15);
+  background: rgba(46, 213, 115, 0.05);
+}
+
+@media (max-width: 480px) {
+  .form-card {
+    padding: 28px 20px;
   }
 }
 </style>

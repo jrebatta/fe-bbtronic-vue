@@ -2,46 +2,59 @@
   <GameLayout
     title="Preguntas Directas"
     :show-next-button="false"
+    :show-session-code="true"
     @return-to-lobby="returnToLobby"
     @logout="handleLogout"
   >
-    <div class="questions-container">
-      <div
-        v-for="user in otherUsers"
-        :key="user.username"
-        class="question-item"
-      >
-        <label class="question-label">Pregunta para {{ user.username }}:</label>
-        <input
-          v-model="questions[user.username]"
-          type="text"
-          placeholder="Escribe tu pregunta aquí"
-          class="question-input"
-        >
+    <div class="questions-wrapper">
+      <div class="intro-text">
+        <p>Escríbele una pregunta a cada jugador</p>
       </div>
+
+      <div class="questions-list">
+        <div
+          v-for="user in otherUsers"
+          :key="user.username"
+          class="question-item"
+        >
+          <label class="question-label" :for="`q-${user.username}`">
+            <span class="label-for">Para</span>
+            <span class="label-name">{{ user.username }}</span>
+          </label>
+          <input
+            :id="`q-${user.username}`"
+            v-model="questions[user.username]"
+            type="text"
+            class="question-input"
+            placeholder="Escribe tu pregunta aquí..."
+            :disabled="questionsSent"
+          />
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <label class="anon-toggle" for="anonymousCheck">
+          <input
+            id="anonymousCheck"
+            v-model="anonymousCheck"
+            type="checkbox"
+            class="anon-checkbox"
+          />
+          <span class="anon-label">Enviar de forma anónima</span>
+        </label>
+
+        <BaseButton
+          variant="primary"
+          :disabled="questionsSent || loading"
+          :loading="loading"
+          @click="submitQuestions"
+        >
+          {{ questionsSent ? 'Preguntas enviadas' : 'Enviar Preguntas' }}
+        </BaseButton>
+      </div>
+
+      <ErrorMessage v-if="error" :message="error" />
     </div>
-
-    <div class="anonymous-check">
-      <input
-        v-model="anonymousCheck"
-        type="checkbox"
-        id="anonymousCheck"
-      >
-      <label for="anonymousCheck">
-        Enviar de forma anónima
-      </label>
-    </div>
-
-    <BaseButton
-      variant="primary"
-      :disabled="questionsSent || loading"
-      :loading="loading"
-      @click="submitQuestions"
-    >
-      Enviar Preguntas
-    </BaseButton>
-
-    <ErrorMessage v-if="error" :message="error" />
   </GameLayout>
 </template>
 
@@ -70,7 +83,7 @@ const otherUsers = computed(() =>
 )
 
 const { send } = useWebSocket({
-  allReady: () => router.push({ name: 'mostrar-preguntas' }),
+  allReady:      () => router.push({ name: 'mostrar-preguntas' }),
   returnToLobby: () => router.push({ name: 'lobby' })
 })
 
@@ -83,55 +96,28 @@ onMounted(async () => {
     error.value = 'Error al cargar sesión'
   }
 
-  // Configurar callback de reconexión para verificar si el juego sigue activo
   websocketService.setReconnectCallback(async () => {
-    console.log('🔄 Reconectando en PreguntasDirectas, verificando estado del juego...')
     await checkGameStatus()
   })
 })
 
-/**
- * Verificar si el juego sigue activo después de reconexión
- */
 async function checkGameStatus() {
-  // Validar que existe un sessionCode antes de sincronizar
   if (!sessionStore.sessionCode) {
-    console.warn('⚠️ No hay sessionCode, redirigiendo al home')
     router.push('/')
     return
   }
-
   try {
     const syncData = await apiService.syncSession(sessionStore.sessionCode)
-
-    // Si ya no hay juego activo o cambió de juego, volver al lobby
     if (!syncData.currentGame || syncData.currentGame !== 'preguntas-directas') {
-      console.log('⚠️ Juego no activo o cambió, volviendo al lobby')
       router.push({ name: 'lobby' })
       return
     }
-
-    // Verificar si todos los usuarios están listos (han enviado sus preguntas)
     const allUsersReady = syncData.users && syncData.users.every(u => u.ready === true)
-
-    // Si hay roundId Y todos están listos, significa que el juego avanzó a mostrar preguntas
-    if (syncData.gameState && syncData.gameState.roundId && allUsersReady) {
-      console.log('✅ Todos los usuarios listos, avanzando a mostrar preguntas')
-      console.log(`🎮 Round ID: ${syncData.gameState.roundId}`)
-
-      // Guardar el roundId en el store
+    if (syncData.gameState?.roundId && allUsersReady) {
       sessionStore.setCurrentRoundId(syncData.gameState.roundId)
-
-      // Redirigir a la vista de mostrar preguntas
       router.push({ name: 'mostrar-preguntas' })
-      return
     }
-
-    console.log('✅ Juego activo, continuando en PreguntasDirectas (escribiendo preguntas)')
   } catch (err) {
-    console.error('❌ Error al verificar estado del juego:', err)
-    // Si hay error al sincronizar, asumir que el juego no está activo y volver al lobby
-    console.warn('⚠️ Error al sincronizar, volviendo al lobby por seguridad')
     router.push({ name: 'lobby' })
   }
 }
@@ -139,7 +125,6 @@ async function checkGameStatus() {
 async function submitQuestions() {
   if (questionsSent.value) return
 
-  // Validar que haya al menos otro usuario para enviar preguntas
   if (otherUsers.value.length === 0) {
     error.value = 'Necesitas al menos otro jugador para comenzar.'
     return
@@ -156,7 +141,6 @@ async function submitQuestions() {
   error.value = ''
 
   try {
-    // Enviar todas las preguntas
     for (const user of otherUsers.value) {
       await apiService.sendQuestion(sessionStore.sessionCode, {
         fromUser: sessionStore.username,
@@ -166,22 +150,16 @@ async function submitQuestions() {
       })
     }
 
-    // Marcar usuario como listo y capturar roundId
     const readyResponse = await apiService.markUserReady(sessionStore.username)
-
-    // Guardar el roundId en el store
     if (readyResponse.roundId) {
       sessionStore.setCurrentRoundId(readyResponse.roundId)
-      console.log('✅ Usuario listo, roundId:', readyResponse.roundId)
     }
 
-    // Verificar si todos están listos
     const checkResponse = await apiService.checkAllReady(sessionStore.sessionCode)
-
     if (checkResponse.allReady) {
       send('allReady')
     } else {
-      error.value = checkResponse.message || 'Esperando a otros usuarios...'
+      error.value = checkResponse.message || 'Esperando a otros jugadores...'
     }
   } catch (err) {
     error.value = 'Error al enviar preguntas'
@@ -192,22 +170,12 @@ async function submitQuestions() {
 }
 
 async function returnToLobby() {
-  // Solo el creador puede volver al lobby
-  if (!sessionStore.isCreator) {
-    console.warn('⚠️ Solo el creador puede volver al lobby')
-    return
-  }
-
+  if (!sessionStore.isCreator) return
   try {
-    // Terminar el juego en el backend (limpia currentGame)
     await apiService.endCurrentGame(sessionStore.sessionCode)
-
-    // Notificar a todos los usuarios que vuelvan al lobby
     send('returnToLobby', { isCreator: true })
     router.push({ name: 'lobby' })
   } catch (err) {
-    console.error('Error al terminar el juego:', err)
-    // Aun con error, intentar volver al lobby
     send('returnToLobby', { isCreator: true })
     router.push({ name: 'lobby' })
   }
@@ -219,74 +187,127 @@ async function handleLogout() {
 </script>
 
 <style scoped>
-.questions-container {
-  max-width: 700px;
-  margin: 30px auto;
+.questions-wrapper {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.intro-text {
+  text-align: center;
+}
+
+.intro-text p {
+  font-size: 15px;
+  color: rgba(240, 230, 255, 0.55);
+  font-weight: 400;
+}
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .question-item {
-  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .question-label {
-  display: block;
-  color: #fff;
-  font-size: 16px;
-  margin-bottom: 10px;
-  text-shadow: 0 0 10px rgba(187, 0, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label-for {
+  font-size: 12px;
+  color: rgba(240, 230, 255, 0.45);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.label-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #cc44ff;
+  text-shadow: 0 0 8px rgba(187, 0, 255, 0.4);
 }
 
 .question-input {
   width: 100%;
-  padding: 12px 15px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 2px solid rgba(187, 0, 255, 0.4);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 16px;
-  transition: all 0.3s;
-}
-
-.question-input:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(187, 0, 255, 0.22);
+  color: #f0e6ff;
+  padding: 13px 16px;
+  font-size: 15px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400;
+  border-radius: 12px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
   outline: none;
-  border-color: #bb00ff;
-  box-shadow: 0 0 15px rgba(187, 0, 255, 0.5);
 }
 
 .question-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(240, 230, 255, 0.3);
+  font-weight: 300;
 }
 
-.anonymous-check {
+.question-input:focus {
+  background: rgba(187, 0, 255, 0.07);
+  border-color: #bb00ff;
+  box-shadow: 0 0 0 3px rgba(187, 0, 255, 0.13);
+}
+
+.question-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Footer ── */
+.form-footer {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 20px auto;
-  max-width: 700px;
-  color: #fff;
-  font-size: 16px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.anonymous-check input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #bb00ff;
-}
-
-.anonymous-check label {
+.anon-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   cursor: pointer;
   user-select: none;
 }
 
-@media (max-width: 768px) {
-  .questions-container {
-    padding: 0 15px;
+.anon-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #bb00ff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.anon-label {
+  font-size: 14px;
+  color: rgba(240, 230, 255, 0.65);
+  font-weight: 400;
+}
+
+@media (max-width: 600px) {
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .question-label,
-  .anonymous-check {
-    font-size: 14px;
+  .form-footer :deep(.base-button) {
+    width: 100%;
   }
 }
 </style>

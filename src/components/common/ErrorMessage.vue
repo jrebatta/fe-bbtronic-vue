@@ -19,20 +19,22 @@ defineProps({
 
 <style scoped>
 .error-message {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
   color: #ff4757;
-  background: rgba(255, 71, 87, 0.2);
-  border: 1px solid rgba(255, 71, 87, 0.5);
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px solid rgba(255, 71, 87, 0.35);
+  padding: 11px 16px;
+  border-radius: 10px;
   text-align: center;
-  margin: 10px 0;
-  animation: shake 0.5s;
+  animation: shake 0.4s ease;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-10px); }
-  75% { transform: translateX(10px); }
+  20%       { transform: translateX(-8px); }
+  60%       { transform: translateX(8px); }
+  80%       { transform: translateX(-4px); }
 }
 </style>

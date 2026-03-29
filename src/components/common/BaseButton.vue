@@ -2,172 +2,192 @@
   <button
     :type="type"
     :disabled="disabled || loading"
-    :class="['base-button', variantClass]"
+    :class="['base-button', `btn-${variant}`, { 'btn-full': fullWidth }]"
     @click="handleClick"
   >
-    <span v-if="loading" class="spinner-small"></span>
+    <span v-if="loading" class="spinner-small" aria-hidden="true"></span>
     <slot v-else />
   </button>
 </template>
 
 <script setup>
-/**
- * BaseButton - Componente de botón reutilizable
- * Soporta diferentes variantes: primary, danger, warning, success
- */
-
 import { computed } from 'vue'
 
 const props = defineProps({
   type: {
     type: String,
     default: 'button',
-    validator: (value) => ['button', 'submit', 'reset'].includes(value)
+    validator: (v) => ['button', 'submit', 'reset'].includes(v)
   },
   variant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'danger', 'warning', 'success', 'secondary'].includes(value)
+    validator: (v) => ['primary', 'danger', 'warning', 'success', 'secondary', 'ghost'].includes(v)
   },
-  disabled: {
-    type: Boolean,
-    default: false
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
+  disabled: { type: Boolean, default: false },
+  loading:  { type: Boolean, default: false },
+  fullWidth: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['click'])
 
-const variantClass = computed(() => `btn-${props.variant}`)
-
 function handleClick(event) {
-  if (!props.disabled && !props.loading) {
-    emit('click', event)
-  }
+  if (!props.disabled && !props.loading) emit('click', event)
 }
 </script>
 
 <style scoped>
 .base-button {
-  padding: 15px 30px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 10px;
-  border: 2px solid;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'Roboto', sans-serif;
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  padding: 13px 28px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, border-color 200ms ease;
+  white-space: nowrap;
+  text-transform: uppercase;
 }
 
+.btn-full {
+  width: 100%;
+}
+
+/* Shimmer shine effect */
+.base-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+.base-button:hover:not(:disabled)::after {
+  left: 150%;
+}
+
+/* Disabled */
 .base-button:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Primary */
-.btn-primary {
-  background: linear-gradient(135deg, rgba(187, 0, 255, 0.8), rgba(80, 0, 180, 0.8));
-  border-color: #bb00ff;
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(187, 0, 255, 0.4);
+/* Active press */
+.base-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
 }
 
+/* ── Primary ── */
+.btn-primary {
+  background: linear-gradient(135deg, #bb00ff 0%, #7700cc 100%);
+  border-color: rgba(187, 0, 255, 0.6);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(187, 0, 255, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+}
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(187, 0, 255, 1), rgba(80, 0, 180, 1));
+  background: linear-gradient(135deg, #cc22ff 0%, #9900ee 100%);
   border-color: #ff00ff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(187, 0, 255, 0.6);
+  box-shadow: 0 8px 28px rgba(187, 0, 255, 0.55), 0 0 12px rgba(187, 0, 255, 0.4);
 }
 
-/* Danger */
+/* ── Danger ── */
 .btn-danger {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 35, 51, 0.8));
-  border-color: #dc3545;
+  background: linear-gradient(135deg, #ff4757 0%, #cc2233 100%);
+  border-color: rgba(255, 71, 87, 0.6);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+  box-shadow: 0 4px 16px rgba(255, 71, 87, 0.3);
 }
-
 .btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 1), rgba(200, 35, 51, 1));
+  background: linear-gradient(135deg, #ff6070 0%, #ee3344 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(220, 53, 69, 0.6);
+  box-shadow: 0 8px 24px rgba(255, 71, 87, 0.5);
 }
 
-/* Warning */
+/* ── Warning ── */
 .btn-warning {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.8), rgba(255, 152, 0, 0.8));
-  border-color: #ffc107;
-  color: #000;
-  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, #ffa502 0%, #cc7700 100%);
+  border-color: rgba(255, 165, 2, 0.6);
+  color: #0a0a1a;
+  box-shadow: 0 4px 16px rgba(255, 165, 2, 0.3);
 }
-
 .btn-warning:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 1), rgba(255, 152, 0, 1));
+  background: linear-gradient(135deg, #ffb733 0%, #ee9900 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 193, 7, 0.6);
+  box-shadow: 0 8px 24px rgba(255, 165, 2, 0.5);
 }
 
-/* Success */
+/* ── Success ── */
 .btn-success {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.8), rgba(25, 135, 84, 0.8));
-  border-color: #28a745;
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  background: linear-gradient(135deg, #2ed573 0%, #1aaa55 100%);
+  border-color: rgba(46, 213, 115, 0.6);
+  color: #0a0a1a;
+  box-shadow: 0 4px 16px rgba(46, 213, 115, 0.3);
 }
-
 .btn-success:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 1), rgba(25, 135, 84, 1));
+  background: linear-gradient(135deg, #5af59a 0%, #28cc66 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(40, 167, 69, 0.6);
+  box-shadow: 0 8px 24px rgba(46, 213, 115, 0.5);
 }
 
-/* Secondary */
+/* ── Secondary ── */
 .btn-secondary {
-  background: linear-gradient(135deg, rgba(108, 117, 125, 0.8), rgba(90, 98, 104, 0.8));
-  border-color: #6c757d;
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(240, 230, 255, 0.85);
+  box-shadow: none;
 }
-
 .btn-secondary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(108, 117, 125, 1), rgba(90, 98, 104, 1));
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(187, 0, 255, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(108, 117, 125, 0.6);
+  box-shadow: 0 4px 16px rgba(187, 0, 255, 0.2);
 }
 
-.base-button:active:not(:disabled) {
-  transform: translateY(0);
+/* ── Ghost ── */
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(187, 0, 255, 0.4);
+  color: #bb00ff;
+  box-shadow: none;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(187, 0, 255, 0.1);
+  border-color: #bb00ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(187, 0, 255, 0.25);
 }
 
-/* Spinner pequeño */
+/* ── Spinner ── */
 .spinner-small {
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .base-button {
-    font-size: 16px;
-    padding: 12px 20px;
+    font-size: 14px;
+    padding: 12px 22px;
   }
 }
 </style>

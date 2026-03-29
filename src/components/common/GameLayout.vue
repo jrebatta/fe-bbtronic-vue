@@ -2,93 +2,74 @@
   <div :class="['game-layout', customClass]">
     <BackgroundVideo />
 
-    <div class="game-container">
-      <!-- Header con título y código de sesión -->
-      <header v-if="showHeader" class="game-header">
-        <h1 class="game-title">{{ title }}</h1>
-        <p v-if="showSessionCode" class="session-code">
-          Sesión: <strong>{{ sessionStore.sessionCode }}</strong>
-        </p>
-      </header>
+    <!-- Floating top bar -->
+    <header v-if="showHeader" class="game-topbar">
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <span class="brand-mark">BB</span>
+        </div>
 
-      <!-- Contenido principal del juego -->
-      <main class="game-content">
-        <slot />
-      </main>
+        <div class="topbar-center">
+          <h1 class="game-title">{{ title }}</h1>
+        </div>
 
-      <!-- Controles del creador (botones de navegación) -->
-      <div v-if="showCreatorControls && sessionStore.isCreator" class="creator-controls">
-        <slot name="creator-controls">
-          <BaseButton
-            v-if="showNextButton"
-            @click="$emit('next')"
-            variant="primary"
-          >
-            Siguiente
-          </BaseButton>
-          <BaseButton
-            v-if="showLobbyButton"
-            @click="$emit('return-to-lobby')"
-            variant="warning"
-          >
-            Volver al Lobby
-          </BaseButton>
-        </slot>
+        <div class="topbar-right">
+          <span v-if="showSessionCode" class="session-badge">
+            <span class="session-badge-label">Sesión</span>
+            <span class="session-badge-code">{{ sessionStore.sessionCode }}</span>
+          </span>
+        </div>
       </div>
+    </header>
 
-      <!-- Botón de salir (siempre visible) -->
-      <div v-if="showLogoutButton" class="logout-section">
-        <BaseButton @click="$emit('logout')" variant="danger">
-          Salir
+    <!-- Main content -->
+    <main class="game-content" :class="{ 'with-header': showHeader }">
+      <slot />
+    </main>
+
+    <!-- Creator controls -->
+    <div v-if="showCreatorControls && sessionStore.isCreator" class="controls-bar creator-bar">
+      <slot name="creator-controls">
+        <BaseButton
+          v-if="showNextButton"
+          variant="primary"
+          @click="$emit('next')"
+        >
+          Siguiente
         </BaseButton>
-      </div>
+        <BaseButton
+          v-if="showLobbyButton"
+          variant="ghost"
+          @click="$emit('return-to-lobby')"
+        >
+          Volver al Lobby
+        </BaseButton>
+      </slot>
+    </div>
+
+    <!-- Logout -->
+    <div v-if="showLogoutButton" class="controls-bar logout-bar">
+      <BaseButton variant="danger" @click="$emit('logout')">
+        Salir
+      </BaseButton>
     </div>
   </div>
 </template>
 
 <script setup>
-/**
- * GameLayout - Layout común para todos los juegos
- * Proporciona estructura consistente con header, controles y logout
- */
-
 import { useSessionStore } from '@/stores/session.store'
 import BackgroundVideo from './BackgroundVideo.vue'
 import BaseButton from './BaseButton.vue'
 
 defineProps({
-  title: {
-    type: String,
-    required: true
-  },
-  customClass: {
-    type: String,
-    default: ''
-  },
-  showHeader: {
-    type: Boolean,
-    default: true
-  },
-  showSessionCode: {
-    type: Boolean,
-    default: false
-  },
-  showCreatorControls: {
-    type: Boolean,
-    default: true
-  },
-  showNextButton: {
-    type: Boolean,
-    default: true
-  },
-  showLobbyButton: {
-    type: Boolean,
-    default: true
-  },
-  showLogoutButton: {
-    type: Boolean,
-    default: true
-  }
+  title:               { type: String,  required: true },
+  customClass:         { type: String,  default: '' },
+  showHeader:          { type: Boolean, default: true },
+  showSessionCode:     { type: Boolean, default: false },
+  showCreatorControls: { type: Boolean, default: true },
+  showNextButton:      { type: Boolean, default: true },
+  showLobbyButton:     { type: Boolean, default: true },
+  showLogoutButton:    { type: Boolean, default: true }
 })
 
 defineEmits(['next', 'return-to-lobby', 'logout'])
@@ -100,85 +81,167 @@ const sessionStore = useSessionStore()
 .game-layout {
   position: relative;
   min-height: 100vh;
-  font-family: 'Roboto', sans-serif;
-  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  color: #f0e6ff;
   overflow-x: hidden;
-}
-
-.game-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 30px;
 }
 
-.game-header {
+/* ── Floating top bar ── */
+.game-topbar {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 100;
+  animation: fadeInDown 0.5s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 8, 25, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(187, 0, 255, 0.25);
+  border-radius: 16px;
+  padding: 10px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(187, 0, 255, 0.1);
+}
+
+.topbar-left,
+.topbar-right {
+  flex: 0 0 auto;
+  min-width: 80px;
+}
+
+.topbar-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.topbar-center {
+  flex: 1;
   text-align: center;
-  animation: fadeIn 0.8s ease-in;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.brand-mark {
+  font-family: 'Righteous', sans-serif;
+  font-size: 18px;
+  color: #bb00ff;
+  text-shadow: 0 0 10px rgba(187, 0, 255, 0.8);
+  letter-spacing: 1px;
 }
 
 .game-title {
-  font-size: 48px;
+  font-family: 'Righteous', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #f0e6ff;
+  text-shadow: 0 0 12px rgba(187, 0, 255, 0.7);
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(187, 0, 255, 0.12);
+  border: 1px solid rgba(187, 0, 255, 0.35);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.session-badge-label {
+  font-size: 10px;
+  color: rgba(240, 230, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.session-badge-code {
+  font-size: 14px;
   font-weight: 700;
-  color: #fff;
-  text-shadow:
-    0 0 20px rgba(187, 0, 255, 0.8),
-    0 0 40px rgba(187, 0, 255, 0.6);
-  margin-bottom: 10px;
-}
-
-.session-code {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.session-code strong {
   color: #bb00ff;
-  text-shadow: 0 0 10px rgba(187, 0, 255, 0.6);
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(187, 0, 255, 0.6);
 }
 
+/* ── Content area ── */
 .game-content {
   flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  animation: fadeInUp 0.6s ease;
 }
 
-.creator-controls,
-.logout-section {
+.game-content.with-header {
+  padding-top: 90px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Control bars ── */
+.controls-bar {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
+  padding: 0 20px;
 }
 
-/* Responsive */
+.creator-bar {
+  padding-bottom: 16px;
+}
+
+.logout-bar {
+  padding-bottom: 24px;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
+  .game-topbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .topbar-inner {
+    padding: 8px 14px;
+    border-radius: 12px;
+  }
+
   .game-title {
-    font-size: 32px;
+    font-size: 16px;
   }
 
-  .game-container {
-    padding: 20px 15px;
+  .brand-mark {
+    font-size: 15px;
   }
 
-  .creator-controls,
-  .logout-section {
+  .controls-bar {
     flex-direction: column;
+    align-items: center;
+  }
+
+  .controls-bar :deep(.base-button) {
+    width: 100%;
+    max-width: 280px;
   }
 }
 </style>

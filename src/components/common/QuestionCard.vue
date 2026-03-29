@@ -1,24 +1,20 @@
 <template>
   <div class="question-card">
-    <!-- Número de pregunta (opcional) -->
-    <p v-if="questionNumber" class="question-number">
-      Pregunta #{{ questionNumber }}
-    </p>
+    <!-- Badge row -->
+    <div v-if="questionNumber || fromUser !== undefined || toUser !== undefined" class="card-meta">
+      <span v-if="questionNumber" class="meta-badge meta-number">#{{ questionNumber }}</span>
+      <span v-if="fromUser !== undefined" class="meta-badge meta-from">
+        De: <strong>{{ fromUser || 'Anónimo' }}</strong>
+      </span>
+      <span v-if="toUser !== undefined" class="meta-badge meta-to">
+        Para: <strong>{{ toUser || '—' }}</strong>
+      </span>
+    </div>
 
-    <!-- De quién (opcional) -->
-    <p v-if="fromUser !== undefined" class="from-user">
-      De: <strong>{{ fromUser || 'Anónimo' }}</strong>
-    </p>
+    <!-- Question text -->
+    <p class="question-text">{{ questionText || '—' }}</p>
 
-    <!-- Para quién (opcional) -->
-    <p v-if="toUser !== undefined" class="to-user">
-      Para: <strong>{{ toUser || '-' }}</strong>
-    </p>
-
-    <!-- Texto de la pregunta -->
-    <p class="question-text">{{ questionText || '-' }}</p>
-
-    <!-- Slot para contenido adicional -->
+    <!-- Extra slot -->
     <div v-if="$slots.default" class="card-extra">
       <slot />
     </div>
@@ -26,103 +22,107 @@
 </template>
 
 <script setup>
-/**
- * QuestionCard - Tarjeta de pregunta reutilizable
- * Muestra preguntas con formato consistente
- */
-
 defineProps({
-  questionText: {
-    type: String,
-    default: ''
-  },
-  questionNumber: {
-    type: [Number, String],
-    default: null
-  },
-  fromUser: {
-    type: String,
-    default: undefined
-  },
-  toUser: {
-    type: String,
-    default: undefined
-  }
+  questionText:   { type: String, default: '' },
+  questionNumber: { type: [Number, String], default: null },
+  fromUser:       { type: String, default: undefined },
+  toUser:         { type: String, default: undefined }
 })
 </script>
 
 <style scoped>
 .question-card {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(15px);
+  background: rgba(14, 10, 30, 0.82);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(187, 0, 255, 0.35);
   border-radius: 20px;
-  padding: 40px;
-  border: 2px solid rgba(187, 0, 255, 0.4);
-  box-shadow: 0 8px 32px rgba(187, 0, 255, 0.3);
-  animation: slideUp 0.5s ease-out;
-  margin: 20px auto;
-  max-width: 800px;
+  padding: 40px 48px;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(187, 0, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: cardReveal 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.question-number {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 10px;
-  text-align: center;
+/* ── Meta badges ── */
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 28px;
 }
 
-.from-user,
-.to-user {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 8px;
+.meta-badge {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
 }
 
-.from-user strong,
-.to-user strong {
-  color: #bb00ff;
-  text-shadow: 0 0 10px rgba(187, 0, 255, 0.6);
+.meta-number {
+  background: rgba(187, 0, 255, 0.15);
+  border: 1px solid rgba(187, 0, 255, 0.3);
+  color: rgba(240, 230, 255, 0.7);
 }
 
+.meta-from {
+  background: rgba(187, 0, 255, 0.1);
+  border: 1px solid rgba(187, 0, 255, 0.25);
+  color: rgba(240, 230, 255, 0.75);
+}
+.meta-from strong {
+  color: #cc44ff;
+}
+
+.meta-to {
+  background: rgba(187, 0, 255, 0.15);
+  border: 1px solid rgba(187, 0, 255, 0.35);
+  color: rgba(240, 230, 255, 0.75);
+}
+.meta-to strong {
+  color: #dd77ff;
+  text-shadow: 0 0 8px rgba(187, 0, 255, 0.5);
+}
+
+/* ── Question text ── */
 .question-text {
-  font-size: 28px;
-  font-weight: 600;
-  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 26px;
+  font-weight: 500;
+  color: #f0e6ff;
   text-align: center;
-  line-height: 1.6;
-  margin: 20px 0;
-  text-shadow: 0 0 15px rgba(187, 0, 255, 0.5);
-  min-height: 80px;
+  line-height: 1.65;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-shadow: 0 0 20px rgba(187, 0, 255, 0.25);
 }
 
+/* ── Extra slot ── */
 .card-extra {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(187, 0, 255, 0.3);
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(187, 0, 255, 0.2);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .question-card {
-    padding: 30px 20px;
+    padding: 28px 24px;
   }
-
   .question-text {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 </style>
