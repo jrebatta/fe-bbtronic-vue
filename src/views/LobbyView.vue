@@ -414,6 +414,8 @@ onBeforeUnmount(() => {
   transition: all 200ms ease;
   position: relative;
   overflow: hidden;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .game-card::after {
@@ -492,10 +494,12 @@ onBeforeUnmount(() => {
   font-family: 'Poppins', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  padding: 8px 14px;
+  padding: 12px 16px;
+  min-height: 44px;
   cursor: pointer;
   transition: all 200ms ease;
   align-self: flex-start;
+  touch-action: manipulation;
 }
 
 .kick-btn:hover {

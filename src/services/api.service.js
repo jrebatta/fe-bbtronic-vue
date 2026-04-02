@@ -301,7 +301,8 @@ class ApiService {
    */
   async checkAllReady(sessionCode) {
     const response = await fetch(
-      `${API_BASE_URL}/api/game-sessions/${sessionCode}/check-all-ready`
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/check-all-ready`,
+      { method: 'POST' }
     )
 
     if (!response.ok) {

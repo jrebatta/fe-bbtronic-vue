@@ -194,6 +194,8 @@ function jugarEnCasa() {
   position: relative;
   overflow: hidden;
   text-align: left;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Hover glow line on left edge */
