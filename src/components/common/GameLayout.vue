@@ -91,9 +91,9 @@ const sessionStore = useSessionStore()
 /* ── Floating top bar ── */
 .game-topbar {
   position: fixed;
-  top: 12px;
-  left: 16px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top, 12px));
+  left: max(16px, env(safe-area-inset-left, 16px));
+  right: max(16px, env(safe-area-inset-right, 16px));
   z-index: 100;
   animation: fadeInDown 0.5s ease;
 }
@@ -188,7 +188,7 @@ const sessionStore = useSessionStore()
 }
 
 .game-content.with-header {
-  padding-top: 90px;
+  padding-top: calc(90px + env(safe-area-inset-top, 0px));
 }
 
 @keyframes fadeInUp {
@@ -234,6 +234,11 @@ const sessionStore = useSessionStore()
     font-size: 15px;
   }
 
+  .topbar-left,
+  .topbar-right {
+    min-width: 60px;
+  }
+
   .controls-bar {
     flex-direction: column;
     align-items: center;
@@ -242,6 +247,35 @@ const sessionStore = useSessionStore()
   .controls-bar :deep(.base-button) {
     width: 100%;
     max-width: 280px;
+  }
+
+  .game-content.with-header {
+    padding-top: 80px;
+  }
+}
+
+@media (max-width: 400px) {
+  .topbar-left,
+  .topbar-right {
+    min-width: 44px;
+  }
+
+  .game-title {
+    font-size: 13px;
+  }
+
+  .brand-mark {
+    font-size: 13px;
+  }
+
+  .session-badge {
+    padding: 3px 7px;
+    gap: 4px;
+  }
+
+  .session-badge-code {
+    font-size: 12px;
+    letter-spacing: 1px;
   }
 }
 </style>

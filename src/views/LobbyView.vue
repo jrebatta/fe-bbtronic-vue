@@ -37,11 +37,23 @@
           <!-- Creator section -->
           <template v-if="sessionStore.isCreator">
             <div class="section-label">Elegir Juego</div>
+
+            <div v-if="!canStartGame" class="min-players-notice">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Se necesitan al menos 2 jugadores para iniciar un juego
+            </div>
+
             <div class="games-grid">
               <button
                 v-for="game in games"
                 :key="game.id"
                 class="game-card"
+                :class="{ 'game-card--disabled': !canStartGame }"
+                :disabled="!canStartGame"
                 @click="startGame(game.id)"
               >
                 <span class="game-emoji" aria-hidden="true">{{ game.emoji }}</span>
@@ -126,6 +138,8 @@ const otherUsers = computed(() =>
   sessionStore.users.filter((u) => u.username !== sessionStore.username)
 )
 
+const canStartGame = computed(() => sessionStore.users.length >= 2)
+
 const { send } = useWebSocket({
   preguntasDirectasStarted: () => router.push({ name: 'preguntas-directas' }),
   yoNuncaNuncaStarted:      () => router.push({ name: 'yo-nunca-nunca' }),
@@ -177,6 +191,10 @@ async function syncSessionState() {
 async function startGame(gameType) {
   if (!sessionStore.isCreator) {
     error.value = 'Solo el creador puede iniciar juegos'
+    return
+  }
+  if (sessionStore.users.length < 2) {
+    error.value = 'Se necesitan al menos 2 jugadores para iniciar un juego.'
     return
   }
   try {
@@ -396,6 +414,8 @@ onBeforeUnmount(() => {
   transition: all 200ms ease;
   position: relative;
   overflow: hidden;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .game-card::after {
@@ -442,6 +462,26 @@ onBeforeUnmount(() => {
   color: rgba(240, 230, 255, 0.45);
 }
 
+/* ── Min players notice ── */
+.min-players-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 190, 0, 0.08);
+  border: 1px solid rgba(255, 190, 0, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 210, 80, 0.85);
+}
+
+.game-card--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ── Kick button ── */
 .kick-btn {
   display: inline-flex;
@@ -454,10 +494,12 @@ onBeforeUnmount(() => {
   font-family: 'Poppins', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  padding: 8px 14px;
+  padding: 12px 16px;
+  min-height: 44px;
   cursor: pointer;
   transition: all 200ms ease;
   align-self: flex-start;
+  touch-action: manipulation;
 }
 
 .kick-btn:hover {

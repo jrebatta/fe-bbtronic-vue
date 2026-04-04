@@ -20,6 +20,7 @@ class WebSocketService {
     this.reconnectDelay = 2000
     this.pendingSubscriptions = new Map() // Guardar callbacks para re-suscribir
     this.reconnectCallback = null // Callback para ejecutar después de reconectar
+    this.connectionHeaders = {} // Headers STOMP persistidos para reconexión
 
     // Detectar cuando la app vuelve al primer plano (celular desbloqueado)
     this.setupVisibilityListener()
@@ -102,9 +103,15 @@ class WebSocketService {
 
   /**
    * Conectar al WebSocket
+   * @param {Object} headers - Headers STOMP (username, sessionCode)
    * @returns {Promise<Object>} - Retorna el cliente STOMP
    */
-  connect() {
+  connect(headers = {}) {
+    // Persistir headers para reconexión automática
+    if (Object.keys(headers).length > 0) {
+      this.connectionHeaders = headers
+    }
+
     return new Promise((resolve, reject) => {
       // Si ya está conectado, resolver inmediatamente
       if (this.isConnected && this.stompClient) {
@@ -143,9 +150,9 @@ class WebSocketService {
           this.handleAutoReconnect()
         }
 
-        // Conectar
+        // Conectar con headers STOMP (username y sessionCode para el backend)
         this.stompClient.connect(
-          {},
+          this.connectionHeaders,
           () => {
             console.log('✅ WebSocket conectado exitosamente.')
             this.isConnected = true
@@ -346,13 +353,13 @@ class WebSocketService {
   }
 
   /**
-   * Reconectar al WebSocket
+   * Reconectar al WebSocket usando los headers persistidos
    * @returns {Promise<Object>}
    */
   async reconnect() {
     console.log('🔄 Intentando reconectar WebSocket...')
     this.disconnect()
-    return this.connect()
+    return this.connect(this.connectionHeaders)
   }
 }
 

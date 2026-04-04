@@ -125,4 +125,23 @@ defineProps({
     font-size: 20px;
   }
 }
+
+@media (max-width: 400px) {
+  .question-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+  .question-text {
+    font-size: 18px;
+    min-height: 56px;
+    line-height: 1.55;
+  }
+  .card-meta {
+    margin-bottom: 18px;
+  }
+  .card-extra {
+    margin-top: 18px;
+    padding-top: 16px;
+  }
+}
 </style>

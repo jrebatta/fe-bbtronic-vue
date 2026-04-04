@@ -33,8 +33,10 @@
               id="sessionCode"
               v-model="sessionCode"
               type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
               class="input-field code-input"
-              placeholder="A1B2"
+              placeholder="1234"
               maxlength="4"
               autocomplete="off"
               spellcheck="false"
@@ -93,7 +95,7 @@ const sessionCode = ref('')
 const username    = ref('')
 
 function validateSessionCode() {
-  sessionCode.value = sessionCode.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()
+  sessionCode.value = sessionCode.value.replace(/[^0-9]/g, '').slice(0, 4)
 }
 
 async function handleSubmit() {
@@ -286,9 +288,19 @@ form {
   background: rgba(46, 213, 115, 0.05);
 }
 
+@media (max-width: 768px) {
+  .input-field {
+    font-size: 16px; /* Prevent iOS auto-zoom on focus */
+  }
+}
+
 @media (max-width: 480px) {
   .form-card {
     padding: 28px 20px;
+  }
+
+  .page-wrapper {
+    padding: 16px 16px;
   }
 }
 </style>

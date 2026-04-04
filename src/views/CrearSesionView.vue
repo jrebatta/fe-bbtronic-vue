@@ -150,6 +150,7 @@ async function handleSubmit() {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  position: relative;
 }
 
 /* Top accent */
@@ -246,9 +247,19 @@ form {
   cursor: not-allowed;
 }
 
+@media (max-width: 768px) {
+  .input-field {
+    font-size: 16px; /* Prevent iOS auto-zoom on focus */
+  }
+}
+
 @media (max-width: 480px) {
   .form-card {
     padding: 28px 20px;
+  }
+
+  .page-wrapper {
+    padding: 16px 16px;
   }
 }
 </style>

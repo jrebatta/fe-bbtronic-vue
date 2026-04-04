@@ -187,7 +187,9 @@ function handleClick(event) {
 @media (max-width: 768px) {
   .base-button {
     font-size: 14px;
-    padding: 12px 22px;
+    padding: 13px 22px;
+    min-height: 44px;
+    touch-action: manipulation;
   }
 }
 </style>

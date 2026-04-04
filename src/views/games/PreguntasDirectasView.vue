@@ -53,13 +53,22 @@
         </BaseButton>
       </div>
 
+      <!-- Waiting message (info, not error) -->
+      <div v-if="waitingMessage" class="waiting-notice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        {{ waitingMessage }}
+      </div>
+
       <ErrorMessage v-if="error" :message="error" />
     </div>
   </GameLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import { useSession } from '@/composables/useSession'
@@ -77,6 +86,7 @@ const anonymousCheck = ref(false)
 const questionsSent = ref(false)
 const loading = ref(false)
 const error = ref('')
+const waitingMessage = ref('')
 
 const otherUsers = computed(() =>
   sessionStore.users.filter(u => u.username !== sessionStore.username)
@@ -139,6 +149,7 @@ async function submitQuestions() {
   questionsSent.value = true
   loading.value = true
   error.value = ''
+  waitingMessage.value = ''
 
   try {
     for (const user of otherUsers.value) {
@@ -156,10 +167,19 @@ async function submitQuestions() {
     }
 
     const checkResponse = await apiService.checkAllReady(sessionStore.sessionCode)
+
+    if (checkResponse.roundId) {
+      sessionStore.setCurrentRoundId(checkResponse.roundId)
+    }
+
     if (checkResponse.allReady) {
-      send('allReady')
+      // El backend ya emitió el WS 'allReady' a todos los usuarios.
+      // Navegar directamente para quien disparó el checkAllReady final.
+      router.push({ name: 'mostrar-preguntas' })
     } else {
-      error.value = checkResponse.message || 'Esperando a otros jugadores...'
+      // Mostrar mensaje de espera amigable; el WS 'allReady' llegará
+      // cuando el último usuario envíe sus preguntas.
+      waitingMessage.value = checkResponse.message || 'Esperando a otros jugadores...'
     }
   } catch (err) {
     error.value = 'Error al enviar preguntas'
@@ -168,6 +188,10 @@ async function submitQuestions() {
     loading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  websocketService.setReconnectCallback(null)
+})
 
 async function returnToLobby() {
   if (!sessionStore.isCreator) return
@@ -298,6 +322,32 @@ async function handleLogout() {
   font-size: 14px;
   color: rgba(240, 230, 255, 0.65);
   font-weight: 400;
+}
+
+/* ── Waiting notice ── */
+.waiting-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(187, 0, 255, 0.08);
+  border: 1px solid rgba(187, 0, 255, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(240, 230, 255, 0.8);
+  animation: waitingPulse 2s ease-in-out infinite;
+}
+
+@keyframes waitingPulse {
+  0%, 100% { border-color: rgba(187, 0, 255, 0.3); }
+  50%       { border-color: rgba(187, 0, 255, 0.6); }
+}
+
+@media (max-width: 768px) {
+  .question-input {
+    font-size: 16px; /* Prevent iOS auto-zoom on focus */
+  }
 }
 
 @media (max-width: 600px) {
