@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import { useSession } from '@/composables/useSession'
@@ -188,6 +188,10 @@ async function submitQuestions() {
     loading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  websocketService.setReconnectCallback(null)
+})
 
 async function returnToLobby() {
   if (!sessionStore.isCreator) return

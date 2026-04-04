@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import websocketService from '@/services/websocket.service'
 import { useSessionStore } from '@/stores/session.store'
 
+
 /**
  * Hook para manejar WebSocket en componentes
  * @param {Object} eventHandlers - Objeto con handlers para cada evento
@@ -28,8 +29,11 @@ export function useWebSocket(eventHandlers = {}) {
    */
   onMounted(async () => {
     try {
-      // Conectar al WebSocket
-      await websocketService.connect()
+      // Conectar con headers STOMP para que el backend identifique al usuario
+      await websocketService.connect({
+        username: sessionStore.username,
+        sessionCode: sessionStore.sessionCode,
+      })
 
       // Suscribirse al canal de la sesión
       if (sessionStore.sessionCode) {
@@ -38,21 +42,32 @@ export function useWebSocket(eventHandlers = {}) {
           if (message.event === 'creatorLeft') {
             console.log('🚪 El creador ha salido de la sesión')
             alert(message.message || 'El creador de la sesión ha salido. Serás redirigido al inicio.')
-
-            // Limpiar sesión y redirigir
             sessionStore.clearSession()
             websocketService.disconnect()
             router.push('/')
             return
           }
 
-          // Buscar handler para este evento
-          const handler = eventHandlers[message.event]
+          // HANDLER GLOBAL: Usuario salió (desconexión involuntaria detectada por el backend)
+          if (message.event === 'userLeft') {
+            if (Array.isArray(message.users)) {
+              sessionStore.setUsers(message.users)
+            } else if (message.username) {
+              sessionStore.removeUser(message.username)
+            }
+          }
 
+          // HANDLER GLOBAL: Lista de usuarios actualizada (reconexión de un jugador)
+          if (message.event === 'userUpdate') {
+            if (Array.isArray(message.users)) {
+              sessionStore.setUsers(message.users)
+            }
+          }
+
+          // Buscar handler local para este evento
+          const handler = eventHandlers[message.event]
           if (handler && typeof handler === 'function') {
             handler(message)
-          } else {
-            console.warn(`No hay handler para el evento: ${message.event}`)
           }
         })
       } else {
@@ -67,6 +82,9 @@ export function useWebSocket(eventHandlers = {}) {
    * Desuscribirse y limpiar antes de desmontar el componente
    */
   onBeforeUnmount(() => {
+    // Limpiar reconnectCallback para evitar fugas entre vistas
+    websocketService.setReconnectCallback(null)
+
     if (sessionStore.sessionCode) {
       websocketService.unsubscribe(sessionStore.sessionCode)
     }

@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import { useSession } from '@/composables/useSession'
@@ -59,12 +59,10 @@ onMounted(async () => {
 })
 
 /**
- * Verificar si el juego sigue activo después de reconexión
+ * Verificar si el juego sigue activo después de reconexión y restaurar pregunta
  */
 async function checkGameStatus() {
-  // Validar que existe un sessionCode antes de sincronizar
   if (!sessionStore.sessionCode) {
-    console.warn('⚠️ No hay sessionCode, redirigiendo al home')
     router.push('/')
     return
   }
@@ -72,23 +70,26 @@ async function checkGameStatus() {
   try {
     const syncData = await apiService.syncSession(sessionStore.sessionCode)
 
-    // Si ya no hay juego activo o cambió de juego, volver al lobby
     if (!syncData.currentGame || syncData.currentGame !== 'preguntas-directas') {
-      console.log('⚠️ Juego no activo o cambió, volviendo al lobby')
       router.push({ name: 'lobby' })
       return
     }
 
-    // IMPORTANTE: Si el endpoint /end-game aún no existe en el backend,
-    // este código no funcionará correctamente hasta que se implemente
-    console.log('✅ Juego activo, continuando en MostrarPreguntas')
+    // Restaurar la pregunta que se está mostrando actualmente
+    const response = await apiService.getCurrentQuestion(sessionStore.sessionCode)
+    if (response?.question) {
+      currentQuestion.value = response.question
+      questionNumber.value = response.numeroDePregunta
+    }
   } catch (err) {
     console.error('❌ Error al verificar estado del juego:', err)
-    // Si hay error al sincronizar, asumir que el juego no está activo y volver al lobby
-    console.warn('⚠️ Error al sincronizar, volviendo al lobby por seguridad')
     router.push({ name: 'lobby' })
   }
 }
+
+onBeforeUnmount(() => {
+  websocketService.setReconnectCallback(null)
+})
 
 async function fetchNext() {
   // Solo el creador puede obtener la siguiente pregunta

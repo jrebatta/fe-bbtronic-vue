@@ -364,7 +364,7 @@ class ApiService {
    * @param {string} tipo - Tipo de pregunta
    * @returns {Promise<Object>}
    */
-  async getNextYoNuncaNunca(sessionCode, tipo = '1') {
+  async getNextYoNuncaNunca(sessionCode, tipo = 'all') {
     const response = await fetch(
       `${API_BASE_URL}/api/game-sessions/${sessionCode}/next-yo-nunca-nunca?tipo=${tipo}`
     )
