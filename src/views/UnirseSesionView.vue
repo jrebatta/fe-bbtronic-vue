@@ -80,19 +80,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import { useLoading } from '@/composables/useLoading'
 import apiService from '@/services/api.service'
 import { BackgroundVideo, BaseButton, ErrorMessage, LoadingSpinner } from '@/components/common'
 
 const router = useRouter()
+const route = useRoute()
 const sessionStore = useSessionStore()
 const { loading, error, execute } = useLoading()
 
 const sessionCode = ref('')
 const username    = ref('')
+
+onMounted(() => {
+  const codeFromUrl = route.query.code
+  if (codeFromUrl) {
+    sessionCode.value = String(codeFromUrl).replace(/[^0-9]/g, '').slice(0, 4)
+  }
+})
 
 function validateSessionCode() {
   sessionCode.value = sessionCode.value.replace(/[^0-9]/g, '').slice(0, 4)

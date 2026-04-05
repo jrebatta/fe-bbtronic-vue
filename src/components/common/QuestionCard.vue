@@ -1,24 +1,26 @@
 <template>
-  <div class="question-card">
-    <!-- Badge row -->
-    <div v-if="questionNumber || fromUser !== undefined || toUser !== undefined" class="card-meta">
-      <span v-if="questionNumber" class="meta-badge meta-number">#{{ questionNumber }}</span>
-      <span v-if="fromUser !== undefined" class="meta-badge meta-from">
-        De: <strong>{{ fromUser || 'Anónimo' }}</strong>
-      </span>
-      <span v-if="toUser !== undefined" class="meta-badge meta-to">
-        Para: <strong>{{ toUser || '—' }}</strong>
-      </span>
-    </div>
+  <Transition name="question-swap" mode="out-in">
+    <div :key="questionText" class="question-card">
+      <!-- Badge row -->
+      <div v-if="questionNumber || fromUser !== undefined || toUser !== undefined" class="card-meta">
+        <span v-if="questionNumber" class="meta-badge meta-number">#{{ questionNumber }}</span>
+        <span v-if="fromUser !== undefined" class="meta-badge meta-from">
+          De: <strong>{{ fromUser || 'Anónimo' }}</strong>
+        </span>
+        <span v-if="toUser !== undefined" class="meta-badge meta-to">
+          Para: <strong>{{ toUser || '—' }}</strong>
+        </span>
+      </div>
 
-    <!-- Question text -->
-    <p class="question-text">{{ questionText || '—' }}</p>
+      <!-- Question text -->
+      <p class="question-text">{{ questionText || '—' }}</p>
 
-    <!-- Extra slot -->
-    <div v-if="$slots.default" class="card-extra">
-      <slot />
+      <!-- Extra slot -->
+      <div v-if="$slots.default" class="card-extra">
+        <slot />
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -124,6 +126,22 @@ defineProps({
   .question-text {
     font-size: 20px;
   }
+}
+
+/* ── Question swap transition ── */
+.question-swap-enter-active {
+  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.question-swap-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.question-swap-enter-from {
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+}
+.question-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.99);
 }
 
 @media (max-width: 400px) {

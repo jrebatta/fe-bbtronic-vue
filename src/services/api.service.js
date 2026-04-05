@@ -236,6 +236,72 @@ class ApiService {
    */
 
   /**
+   * ========================================
+   * EL IMPOSTOR
+   * ========================================
+   */
+
+  async startElImpostor(sessionCode, impostorCount) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/el-impostor/start`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ impostorCount })
+      }
+    )
+    if (!response.ok) throw new Error('Error al iniciar El Impostor.')
+    return response
+  }
+
+  async getImpostorRole(sessionCode, username) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/el-impostor/my-role?username=${encodeURIComponent(username)}`
+    )
+    if (!response.ok) throw new Error('Error al obtener rol.')
+    return response.json()
+  }
+
+  async callImpostorVote(sessionCode, username) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/el-impostor/call-vote?username=${encodeURIComponent(username)}`,
+      { method: 'POST' }
+    )
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(err.message || 'No se puede llamar votación ahora.')
+    }
+    return response.json()
+  }
+
+  async sendImpostorVote(sessionCode, votingUser, votedUser) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/el-impostor/vote`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ votingUser, votedUser })
+      }
+    )
+    if (!response.ok) throw new Error('Error al votar.')
+    return response
+  }
+
+  /**
+   * Expulsar un jugador de la sesión (solo el creador)
+   * @param {string} sessionCode - Código de sesión
+   * @param {string} username - Nombre del jugador a expulsar
+   */
+  async kickUser(sessionCode, username) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/game-sessions/${sessionCode}/kick?username=${encodeURIComponent(username)}`,
+      { method: 'POST' }
+    )
+    if (!response.ok) throw new Error('Error al expulsar usuario.')
+    return response.json()
+  }
+
+  /**
    * Cerrar sesión de usuario
    * @param {string} sessionToken - Token de sesión
    * @returns {Promise<string>}

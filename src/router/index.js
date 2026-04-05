@@ -148,6 +148,19 @@ const router = createRouter({
       }
     },
 
+    /**
+     * El Impostor
+     */
+    {
+      path: '/el-impostor',
+      name: 'el-impostor',
+      component: () => import('@/views/games/ElImpostorView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'El Impostor - BBTronic'
+      }
+    },
+
     // ========================================
     // RUTA 404 - Not Found
     // ========================================

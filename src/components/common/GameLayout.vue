@@ -69,7 +69,7 @@ defineProps({
   showCreatorControls: { type: Boolean, default: true },
   showNextButton:      { type: Boolean, default: true },
   showLobbyButton:     { type: Boolean, default: true },
-  showLogoutButton:    { type: Boolean, default: true }
+  showLogoutButton:    { type: Boolean, default: false }
 })
 
 defineEmits(['next', 'return-to-lobby', 'logout'])
