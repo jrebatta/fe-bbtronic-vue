@@ -211,6 +211,18 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   /**
+   * Marcar a un usuario como "reconectando" o "conectado"
+   * @param {string} usernameToMark
+   * @param {boolean} reconnecting
+   */
+  function setUserReconnecting(usernameToMark, reconnecting) {
+    const userIndex = users.value.findIndex((u) => u.username === usernameToMark)
+    if (userIndex !== -1) {
+      users.value[userIndex] = { ...users.value[userIndex], reconnecting }
+    }
+  }
+
+  /**
    * Limpiar toda la sesión (logout)
    */
   function clearSession() {
@@ -281,6 +293,7 @@ export const useSessionStore = defineStore('session', () => {
     addUser,
     removeUser,
     updateUser,
+    setUserReconnecting,
     clearSession,
     restoreSession,
   }

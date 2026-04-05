@@ -6,6 +6,7 @@
 
 import SockJS from 'sockjs-client'
 import Stomp from 'stompjs'
+import { reactive } from 'vue'
 import { WS_ENDPOINT } from '@/config/api.config.js'
 
 class WebSocketService {
@@ -21,6 +22,12 @@ class WebSocketService {
     this.pendingSubscriptions = new Map() // Guardar callbacks para re-suscribir
     this.reconnectCallback = null // Callback para ejecutar después de reconectar
     this.connectionHeaders = {} // Headers STOMP persistidos para reconexión
+
+    // Estado reactivo expuesto para componentes Vue
+    this.state = reactive({
+      isConnected: false,
+      isReconnecting: false,
+    })
 
     // Detectar cuando la app vuelve al primer plano (celular desbloqueado)
     this.setupVisibilityListener()
@@ -147,6 +154,8 @@ class WebSocketService {
         this.socket.onclose = () => {
           console.log('⚠️ Conexión WebSocket cerrada')
           this.isConnected = false
+          this.state.isConnected = false
+          this.state.isReconnecting = true
           this.handleAutoReconnect()
         }
 
@@ -157,13 +166,16 @@ class WebSocketService {
             console.log('✅ WebSocket conectado exitosamente.')
             this.isConnected = true
             this.isConnecting = false
-            this.reconnectAttempts = 0 // Resetear intentos exitosos
+            this.reconnectAttempts = 0
+            this.state.isConnected = true
+            this.state.isReconnecting = false
             resolve(this.stompClient)
           },
           (error) => {
             console.error('❌ Error en la conexión del WebSocket:', error)
             this.isConnecting = false
             this.isConnected = false
+            this.state.isConnected = false
             this.handleAutoReconnect()
             reject(error)
           },
@@ -341,6 +353,7 @@ class WebSocketService {
       this.socket = null
       this.isConnected = false
       this.isConnecting = false
+      this.state.isConnected = false
     }
   }
 

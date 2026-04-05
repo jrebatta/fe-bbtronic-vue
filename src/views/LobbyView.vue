@@ -12,6 +12,16 @@
         <div class="session-pill">
           <span class="session-label">Código</span>
           <span class="session-code">{{ sessionStore.sessionCode }}</span>
+          <button class="share-btn" @click="shareCode" :title="shareTooltip" aria-label="Compartir código">
+            <svg v-if="!copied" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -101,6 +111,31 @@
       </div>
     </div>
 
+    <!-- El Impostor config modal -->
+    <BaseModal v-model="showImpostorModal" title="El Impostor 🕵️" @update:modelValue="v => { if (v) impostorCount = 1 }">
+      <p class="kick-hint">¿Cuántos impostores habrá?</p>
+      <div class="impostor-count-selector">
+        <button
+          v-for="opt in impostorOptions"
+          :key="opt.n"
+          class="count-btn"
+          :class="{ 'count-btn--active': impostorCount === opt.n, 'count-btn--disabled': !opt.enabled }"
+          :disabled="!opt.enabled"
+          @click="opt.enabled && (impostorCount = opt.n)"
+        >
+          {{ opt.n }}
+        </button>
+      </div>
+      <p class="impostor-hint">
+        {{ impostorOptions.find(o => o.n === impostorCount)?.label }}
+        <span v-if="!impostorOptions.find(o => o.n === impostorCount)?.enabled"> — necesitas más jugadores</span>
+      </p>
+      <template #footer>
+        <BaseButton variant="ghost" @click="showImpostorModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" @click="startImpostorGame">Iniciar</BaseButton>
+      </template>
+    </BaseModal>
+
     <!-- Kick modal -->
     <BaseModal v-model="showKickModal" title="Expulsar Jugador">
       <p class="kick-hint">Selecciona al jugador que deseas expulsar</p>
@@ -125,6 +160,19 @@ const { logout } = useSession()
 
 const error = ref('')
 const showKickModal = ref(false)
+const showImpostorModal = ref(false)
+const impostorCount = ref(1)
+
+const impostorOptions = computed(() => {
+  const count = sessionStore.users.length
+  return [
+    { n: 1, enabled: true,       label: 'Mínimo 3 jugadores' },
+    { n: 2, enabled: count >= 6, label: 'Mínimo 6 jugadores' },
+    { n: 3, enabled: count >= 8, label: 'Mínimo 8 jugadores' },
+  ]
+})
+const copied = ref(false)
+const shareTooltip = ref('Compartir código')
 
 const games = [
   { id: 'preguntas-directas',   emoji: '🎯', name: 'Preguntas Directas',    desc: 'Escríbele al resto' },
@@ -132,6 +180,7 @@ const games = [
   { id: 'yo-nunca-nunca',       emoji: '🙈', name: 'Yo Nunca Nunca',        desc: 'Revela tus secretos' },
   { id: 'quien-es-mas-probable',emoji: '🤔', name: 'Quién Es Más Probable', desc: 'Vota al más likely' },
   { id: 'cultura-pendeja',      emoji: '🧠', name: 'Cultura Pendeja',       desc: 'Trivia con tragos' },
+  { id: 'el-impostor',          emoji: '🕵️', name: 'El Impostor',           desc: 'Encuentra al impostor' },
 ]
 
 const otherUsers = computed(() =>
@@ -146,6 +195,7 @@ const { send } = useWebSocket({
   preguntasIncomodasStarted:() => router.push({ name: 'preguntas-incomodas' }),
   quienEsMasProbableStarted:() => router.push({ name: 'quien-es-mas-probable' }),
   culturaPendejaStarted:    () => router.push({ name: 'cultura-pendeja' }),
+  elImpostorStarted:        () => router.push({ name: 'el-impostor' }),
   userUpdate: (message) => {
     if (Array.isArray(message.users)) sessionStore.setUsers(message.users)
   },
@@ -226,9 +276,28 @@ async function startGame(gameType) {
         await apiService.startCulturaPendeja(sessionStore.sessionCode)
         send('culturaPendejaStarted')
         break
+      case 'el-impostor':
+        showImpostorModal.value = true
+        return // No continuar — el inicio ocurre desde el modal
     }
   } catch (err) {
     error.value = `Error al iniciar el juego`
+  }
+}
+
+async function startImpostorGame() {
+  if (sessionStore.users.length < 3) {
+    error.value = 'El Impostor necesita al menos 3 jugadores.'
+    showImpostorModal.value = false
+    return
+  }
+  try {
+    error.value = ''
+    showImpostorModal.value = false
+    await apiService.startElImpostor(sessionStore.sessionCode, impostorCount.value)
+    send('elImpostorStarted')
+  } catch (err) {
+    error.value = 'Error al iniciar El Impostor.'
   }
 }
 
@@ -242,12 +311,47 @@ function confirmKickUser(user) {
 async function kickUser(username) {
   if (!sessionStore.isCreator) return
   try {
-    await apiService.logout(username)
-    send('userLeft', { username })
+    await apiService.kickUser(sessionStore.sessionCode, username)
     sessionStore.removeUser(username)
   } catch (err) {
     error.value = 'Error al expulsar usuario.'
   }
+}
+
+async function shareCode() {
+  const code = sessionStore.sessionCode
+  const joinUrl = `${window.location.origin}/unirse-sesion?code=${code}`
+  const shareText = `Únete a mi sala de BBTronic con el código ${code}: ${joinUrl}`
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'BBTronic', text: shareText, url: joinUrl })
+      return
+    } catch {
+      // Si el usuario cancela el share nativo, caemos al clipboard
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(joinUrl)
+  } catch {
+    // Fallback para navegadores sin clipboard API
+    const ta = document.createElement('textarea')
+    ta.value = joinUrl
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  }
+
+  copied.value = true
+  shareTooltip.value = '¡Link copiado!'
+  setTimeout(() => {
+    copied.value = false
+    shareTooltip.value = 'Compartir código'
+  }, 2500)
 }
 
 async function handleLogout() {
@@ -330,6 +434,26 @@ onBeforeUnmount(() => {
   color: #bb00ff;
   letter-spacing: 3px;
   text-shadow: 0 0 8px rgba(187, 0, 255, 0.6);
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(187, 0, 255, 0.12);
+  border: 1px solid rgba(187, 0, 255, 0.3);
+  border-radius: 7px;
+  color: rgba(187, 0, 255, 0.85);
+  cursor: pointer;
+  transition: all 200ms ease;
+  flex-shrink: 0;
+}
+.share-btn:hover {
+  background: rgba(187, 0, 255, 0.22);
+  border-color: #bb00ff;
+  color: #cc44ff;
 }
 
 /* ── Content layout ── */
@@ -545,6 +669,51 @@ onBeforeUnmount(() => {
   margin-top: auto;
   display: flex;
   justify-content: flex-end;
+}
+
+/* ── Impostor modal ── */
+.impostor-count-selector {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0 10px;
+}
+
+.count-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  border: 2px solid rgba(187, 0, 255, 0.25);
+  background: rgba(187, 0, 255, 0.06);
+  color: rgba(240, 230, 255, 0.7);
+  font-family: 'Righteous', sans-serif;
+  font-size: 26px;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+.count-btn:hover {
+  border-color: rgba(187, 0, 255, 0.5);
+  background: rgba(187, 0, 255, 0.12);
+  color: #f0e6ff;
+}
+.count-btn--active {
+  border-color: #bb00ff;
+  background: rgba(187, 0, 255, 0.22);
+  color: #f0e6ff;
+  box-shadow: 0 0 16px rgba(187, 0, 255, 0.4);
+}
+.count-btn--disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.impostor-hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(240, 230, 255, 0.4);
+  font-family: 'Poppins', sans-serif;
+  margin-bottom: 4px;
 }
 
 /* ── Kick modal ── */

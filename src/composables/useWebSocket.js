@@ -7,6 +7,7 @@ import { onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import websocketService from '@/services/websocket.service'
 import { useSessionStore } from '@/stores/session.store'
+import { useToastStore } from '@/stores/toast.store'
 
 
 /**
@@ -22,6 +23,7 @@ import { useSessionStore } from '@/stores/session.store'
  */
 export function useWebSocket(eventHandlers = {}) {
   const sessionStore = useSessionStore()
+  const toastStore = useToastStore()
   const router = useRouter()
 
   /**
@@ -40,11 +42,16 @@ export function useWebSocket(eventHandlers = {}) {
         websocketService.subscribe(sessionStore.sessionCode, (message) => {
           // HANDLER GLOBAL: Si el creador salió, expulsar a todos
           if (message.event === 'creatorLeft') {
-            console.log('🚪 El creador ha salido de la sesión')
-            alert(message.message || 'El creador de la sesión ha salido. Serás redirigido al inicio.')
-            sessionStore.clearSession()
-            websocketService.disconnect()
-            router.push('/')
+            toastStore.show(
+              message.message || 'El anfitrión ha salido. Volviendo al inicio...',
+              'warning',
+              5000
+            )
+            setTimeout(() => {
+              sessionStore.clearSession()
+              websocketService.disconnect()
+              router.push('/')
+            }, 2000)
             return
           }
 
@@ -55,6 +62,9 @@ export function useWebSocket(eventHandlers = {}) {
             } else if (message.username) {
               sessionStore.removeUser(message.username)
             }
+            if (message.username) {
+              toastStore.show(`${message.username} salió de la sesión`, 'info', 3000)
+            }
           }
 
           // HANDLER GLOBAL: Lista de usuarios actualizada (reconexión de un jugador)
@@ -62,6 +72,38 @@ export function useWebSocket(eventHandlers = {}) {
             if (Array.isArray(message.users)) {
               sessionStore.setUsers(message.users)
             }
+          }
+
+          // HANDLER GLOBAL: Jugador reconectando (ventana de gracia del backend)
+          if (message.event === 'userReconnecting') {
+            if (message.username) {
+              sessionStore.setUserReconnecting(message.username, true)
+            }
+          }
+
+          // HANDLER GLOBAL: Jugador expulsado por el creador
+          if (message.event === 'kicked') {
+            if (message.username === sessionStore.username) {
+              toastStore.show('Fuiste expulsado de la sesión', 'warning', 2000)
+              setTimeout(() => {
+                sessionStore.clearSession()
+                websocketService.disconnect()
+                router.push('/')
+              }, 2500)
+              return
+            }
+          }
+
+          // Feedback háptico al recibir pregunta nueva
+          const questionEvents = [
+            'newYoNuncaNuncaQuestion',
+            'newCulturaPendejaQuestion',
+            'newQuienEsMasProbableQuestion',
+            'nextQuestion',
+            'update',
+          ]
+          if (questionEvents.includes(message.event) && navigator.vibrate) {
+            navigator.vibrate(60)
           }
 
           // Buscar handler local para este evento

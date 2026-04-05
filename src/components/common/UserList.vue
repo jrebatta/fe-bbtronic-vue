@@ -19,8 +19,16 @@
 
         <span class="username">{{ user.username }}</span>
 
-        <!-- Online dot -->
-        <span class="status-dot" :class="{ online: user.connected !== false }" aria-hidden="true"></span>
+        <!-- Status dot: reconectando / online / offline -->
+        <span
+          class="status-dot"
+          :class="{
+            online: !user.reconnecting && user.connected !== false,
+            reconnecting: user.reconnecting
+          }"
+          :title="user.reconnecting ? 'Reconectando...' : ''"
+          aria-hidden="true"
+        ></span>
 
         <slot name="user-actions" :user="user" />
       </li>
@@ -164,6 +172,15 @@ function getAvatarColor(name) {
 .status-dot.online {
   background: #2ed573;
   box-shadow: 0 0 6px rgba(46, 213, 115, 0.7);
+}
+.status-dot.reconnecting {
+  background: rgba(255, 165, 2, 0.9);
+  box-shadow: 0 0 6px rgba(255, 165, 2, 0.7);
+  animation: reconnect-pulse 1s ease-in-out infinite;
+}
+@keyframes reconnect-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 /* Empty state */
